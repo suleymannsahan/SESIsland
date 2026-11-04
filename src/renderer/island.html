@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' https: data:">
+  <title>Ada</title>
+  <link rel="stylesheet" href="island.css">
+</head>
+<body>
+  <div id="stage">
+    <div id="island" class="mode-rest" data-status="idle">
+      <div id="inner"></div>
+      <div class="tide" aria-hidden="true">
+        <svg viewBox="0 0 200 6" preserveAspectRatio="none"><path d="M0 3 Q 12.5 0 25 3 T 50 3 T 75 3 T 100 3 T 125 3 T 150 3 T 175 3 T 200 3 T 225 3 T 250 3"/></svg>
+      </div>
+      <div class="beam" aria-hidden="true"></div>
+    </div>
+    <div id="toast" hidden></div>
+  </div>
+  <script src="calc.js"></script>
+  <script src="core.js"></script>
+  <script src="tab-claude.js"></script>
+  <script src="tab-music.js"></script>
+  <script src="tab-focus.js"></script>
+  <script src="tab-ders.js"></script>
+  <script src="tab-tools.js"></script>
+  <script src="tab-serial.js"></script>
+  <script src="tab-system.js"></script>
+</body>
+</html>

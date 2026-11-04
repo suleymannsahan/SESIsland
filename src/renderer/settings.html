@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+  <title>Ada · Ayarlar</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <nav class="side" aria-label="Ayar bölümleri">
+    <a href="#spotify">Spotify</a>
+    <a href="#pomodoro">Pomodoro</a>
+    <a href="#ders">Ders programı</a>
+    <a href="#gorunum">Görünüm</a>
+    <a href="#kisayol">Kısayollar</a>
+    <a href="#genel">Genel</a>
+    <a href="#guncelleme">Güncellemeler</a>
+  </nav>
+  <main>
+    <header>
+      <h1>Ayarlar</h1>
+      <span id="version"></span>
+    </header>
+
+    <!-- ================================================= Spotify -->
+    <section id="spotify" aria-labelledby="sp-h">
+      <div class="sec-head">
+        <h2 id="sp-h">Spotify</h2>
+        <span id="sp-badge" class="badge"></span>
+      </div>
+      <div id="sp-connected" hidden>
+        <p>Ada Spotify hesabına bağlı. Adanın üzerine gel ve <b>Müzik</b> sekmesini aç.</p>
+        <div class="btns">
+          <button id="sp-reconnect" class="ghost">Yeniden bağlan</button>
+          <button id="sp-disconnect" class="ghost danger">Bağlantıyı kes</button>
+        </div>
+      </div>
+      <div id="sp-setup">
+        <p class="lead">Spotify, kendi uygulamalarını yazan herkesten ücretsiz bir <b>Client ID</b> istiyor. Bir kere yapman yeterli, yaklaşık 2 dakika sürer.</p>
+        <ol class="steps">
+          <li>
+            <span>Spotify geliştirici paneline Spotify hesabınla gir.</span>
+            <button class="link" data-open="https://developer.spotify.com/dashboard">developer.spotify.com/dashboard'u aç</button>
+          </li>
+          <li><span><b>Create app</b>'e bas. App name'e <b>Ada</b>, açıklamaya istediğini yaz.</span></li>
+          <li>
+            <span><b>Redirect URI</b> alanına bunu yapıştırıp <b>Add</b>'e bas:</span>
+            <div class="copy"><code id="redirect"></code><button id="copy-redirect" class="ghost sm">Kopyala</button></div>
+          </li>
+          <li><span>"Which API/SDKs are you planning to use?" sorusunda <b>Web API</b>'yi işaretle, kuralları kabul edip <b>Save</b>'e bas.</span></li>
+          <li><span>Açılan sayfada <b>Client ID</b>'yi kopyala ve aşağıya yapıştır.</span></li>
+        </ol>
+        <label for="client-id">Client ID</label>
+        <div class="row">
+          <input id="client-id" type="text" spellcheck="false" autocomplete="off" placeholder="32 karakterlik kod">
+          <button id="sp-connect">Bağlan</button>
+        </div>
+        <p id="sp-msg" class="msg" role="status"></p>
+        <p class="fine">Bağlan'a basınca tarayıcında Spotify'ın kendi giriş sayfası açılır, şifren Ada'ya gelmez. Ada sadece oynatıcıyı, playlistlerini ve beğendiklerini görebilir. Giriş anahtarı Windows'un şifreli deposunda saklanır.</p>
+      </div>
+    </section>
+
+    <!-- ================================================= Pomodoro -->
+    <section id="pomodoro" aria-labelledby="po-h">
+      <h2 id="po-h">Pomodoro</h2>
+      <div class="grid4">
+        <label>Odak<span class="num"><input type="number" id="po-focusMin" min="1" max="180"> dk</span></label>
+        <label>Kısa mola<span class="num"><input type="number" id="po-shortMin" min="1" max="60"> dk</span></label>
+        <label>Uzun mola<span class="num"><input type="number" id="po-longMin" min="1" max="90"> dk</span></label>
+        <label>Uzun mola her<span class="num"><input type="number" id="po-longEvery" min="2" max="12"> odakta</span></label>
+      </div>
+      <label class="toggle"><input type="checkbox" id="po-autoNext"><span>Sıradaki aşamayı kendiliğinden başlat</span></label>
+      <label class="toggle"><input type="checkbox" id="po-quietFocus"><span>Odak sırasında Ada'nın Windows bildirimlerini sustur <em>(izin istekleri yine gelir)</em></span></label>
+      <label class="toggle"><input type="checkbox" id="po-musicOnFocus"><span>Odak başlayınca müziği çal</span></label>
+      <label class="toggle"><input type="checkbox" id="po-pauseOnBreak"><span>Molada müziği duraklat</span></label>
+      <label for="po-musicUri" class="sub-l">Odakta çalınacak liste</label>
+      <select id="po-musicUri">
+        <option value="">Çalan neyse devam etsin</option>
+        <option value="liked">Beğenilen şarkılar</option>
+      </select>
+      <p class="fine" id="po-pl-msg"></p>
+    </section>
+
+    <!-- ================================================= Ders -->
+    <section id="ders" aria-labelledby="de-h">
+      <h2 id="de-h">Ders programı</h2>
+      <p class="fine">Haftalık derslerin. Ada bugünkü dersleri sırayla gösterir ve dersten önce hatırlatır.</p>
+      <div class="table" id="classes" role="table" aria-label="Dersler"></div>
+      <button class="ghost sm add" id="add-class">+ Ders ekle</button>
+
+      <h3>Sınavlar</h3>
+      <div class="table" id="exams" role="table" aria-label="Sınavlar"></div>
+      <button class="ghost sm add" id="add-exam">+ Sınav ekle</button>
+
+      <div class="row-end">
+        <label class="inline">Dersten önce hatırlat
+          <select id="opt-classReminder">
+            <option value="0">kapalı</option><option value="5">5 dk</option><option value="10">10 dk</option><option value="15">15 dk</option><option value="30">30 dk</option>
+          </select>
+        </label>
+        <span class="spacer"></span>
+        <span id="de-msg" class="msg" role="status"></span>
+        <button id="save-schedule">Kaydet</button>
+      </div>
+    </section>
+
+    <!-- ================================================= Görünüm -->
+    <section id="gorunum" aria-labelledby="go-h">
+      <h2 id="go-h">Görünüm</h2>
+      <div class="seg" role="radiogroup" aria-label="Adanın yeri">
+        <label><input type="radio" name="position" value="left"><span>Sol</span></label>
+        <label><input type="radio" name="position" value="center"><span>Orta</span></label>
+        <label><input type="radio" name="position" value="right"><span>Sağ</span></label>
+      </div>
+      <label for="opt-display" class="sub-l">Ekran</label>
+      <select id="opt-display"></select>
+      <label for="opt-scale" class="sub-l">Boyut <span id="scale-v"></span></label>
+      <input type="range" id="opt-scale" min="0.8" max="1.3" step="0.05">
+      <label class="toggle"><input type="checkbox" id="opt-hideFullscreen"><span>Tam ekran uygulamalarda gizlen <em>(oyun, film, sunum · izin istekleri yine görünür)</em></span></label>
+      <label class="toggle"><input type="checkbox" id="opt-sleepy"><span>Bir süre bir şey olmayınca küçül</span></label>
+      <label class="toggle"><input type="checkbox" id="opt-albumColor"><span>Müzik çalarken albüm kapağının rengini al</span></label>
+    </section>
+
+    <!-- ================================================= Kısayollar -->
+    <section id="kisayol" aria-labelledby="ki-h">
+      <h2 id="ki-h">Kısayollar</h2>
+      <label class="toggle"><input type="checkbox" id="opt-shortcuts"><span>Genel kısayolları aç <em>(hangi pencerede olursan ol çalışır)</em></span></label>
+      <div id="shortcut-list" class="shortcuts"></div>
+    </section>
+
+    <!-- ================================================= Genel -->
+    <section id="genel" aria-labelledby="gen-h">
+      <h2 id="gen-h">Genel</h2>
+      <label class="toggle"><input type="checkbox" id="opt-sound"><span>Ses</span></label>
+      <label class="toggle"><input type="checkbox" id="opt-notifications"><span>Windows bildirimleri</span></label>
+      <label class="toggle"><input type="checkbox" id="opt-desktopWatcher"><span>Claude Desktop sohbetini izle</span></label>
+      <label class="toggle"><input type="checkbox" id="opt-loginAtStart"><span>Windows ile başlat</span></label>
+      <label class="toggle"><input type="checkbox" id="opt-clipboard"><span>Pano geçmişi <em>(sadece bellekte, Ada kapanınca silinir)</em></span></label>
+      <label class="toggle"><input type="checkbox" id="opt-translateLyrics"><span>Sözleri her zaman Türkçeye çevir <em>(MyMemory, günde ~5000 karakter ücretsiz)</em></span></label>
+      <div class="row-inline">
+        <label class="toggle"><input type="checkbox" id="sum-on"><span>Günün özeti</span></label>
+        <input type="time" id="opt-summaryTime" aria-label="Günün özeti saati">
+      </div>
+    </section>
+
+    <!-- ================================================= Güncellemeler -->
+    <section id="guncelleme" aria-labelledby="gu-h">
+      <h2 id="gu-h">Güncellemeler</h2>
+      <p class="fine">Ada'nın GitHub deposunu yaz (<code>kullanıcı/depo</code>). Yeni sürüm çıkınca adada haber verir; indirmek sana kalır.</p>
+      <div class="row">
+        <input id="opt-updateRepo" type="text" spellcheck="false" autocomplete="off" placeholder="semresahan/ada">
+        <button id="check-update" class="ghost">Kontrol et</button>
+      </div>
+      <p id="up-msg" class="msg" role="status"></p>
+    </section>
+  </main>
+  <script src="settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+{
+  "name": "ada",
+  "productName": "Ada",
+  "version": "0.3.0",
+  "description": "Claude Code ve Claude Desktop için Windows'ta küçük bir ada",
+  "main": "src/main.js",
+  "author": "Süleyman Emre Şahan",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis zip --x64"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.emre.ada",
+    "productName": "Ada",
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "scripts",
+        "to": "scripts"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": false,
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Ada",
+      "artifactName": "Ada-Setup-${version}.exe",
+      "uninstallDisplayName": "Ada",
+      "deleteAppDataOnUninstall": false,
+      "installerLanguages": [
+        "tr_TR"
+      ],
+      "language": "1055"
+    },
+    "artifactName": "Ada-${version}-win.${ext}",
+    "publish": null
+  }
+}
