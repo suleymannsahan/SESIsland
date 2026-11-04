@@ -3,14 +3,16 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 const LISTEN = [
   'island:state', 'island:event', 'island:toast', 'island:expand', 'island:config',
-  'music:state', 'music:lyrics', 'mod:state',
+  'music:state', 'music:lyrics', 'mod:state', 'island:pointer',
   'settings:spotify', 'settings:login', 'settings:section',
 ];
 
 contextBridge.exposeInMainWorld('ada', {
   // island
   init: () => ipcRenderer.invoke('island:init'),
-  mouse: (inside) => ipcRenderer.send('island:mouse', inside),
+  mouse: () => {},
+  rect: (r) => ipcRenderer.send('island:rect', r),
+  hold: (on) => ipcRenderer.send('island:hold', on),
   decide: (id, decision) => ipcRenderer.send('island:decide', { id, decision }),
   dismiss: (sessionId) => ipcRenderer.send('island:dismiss', sessionId),
   answer: (askId, answers) => ipcRenderer.send('island:answer', { askId, answers }),

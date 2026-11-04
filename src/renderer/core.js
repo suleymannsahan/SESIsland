@@ -27,6 +27,7 @@
   let leaveTimer = null;
   let hoverTimer = null;
   let last = { mode: '', key: '', skeleton: '', regions: {} };
+  let pressed = false;          // a button is held down: don't re-draw under it
 
   // ------------------------------------------------------------ helpers
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -271,7 +272,7 @@
   function currentTab() { return ui.hovered ? tabs.find((x) => x.id === ui.tab) : null; }
 
   function render() {
-    if (ui.drag) return;
+    if (ui.drag || pressed) return;
     const v = pickView();
     const key = v.key || v.mode;
     const { skeleton, regions } = split(v.html);
@@ -401,24 +402,45 @@
   }
   Ada.closePanel = closePanel;
 
-  island.addEventListener('mouseenter', () => {
-    ada.mouse(true);
-    clearTimeout(leaveTimer);
-    clearTimeout(hoverTimer);
-    hoverTimer = setTimeout(openPanel, 160);
-  });
-  island.addEventListener('mouseleave', () => {
-    clearTimeout(hoverTimer);
-    if (ui.drag || ui.holdOpen) return;
-    ada.mouse(false);
-    leaveTimer = setTimeout(closePanel, 300);
-  });
+  // The main process tells us when the cursor enters or leaves the island (see main.js).
+  ui.pointer = false;
+  function onPointer(inside) {
+    ui.pointer = inside;
+    if (inside) {
+      clearTimeout(leaveTimer);
+      clearTimeout(hoverTimer);
+      hoverTimer = setTimeout(openPanel, 160);
+    } else {
+      clearTimeout(hoverTimer);
+      if (ui.drag || ui.holdOpen) return;
+      leaveTimer = setTimeout(closePanel, 300);
+    }
+  }
+  ada.on('island:pointer', onPointer);
+  // Fallback for tests in a plain browser, where no main process sends pointer events.
+  island.addEventListener('mouseenter', () => { if (!window.__adaMain) onPointer(true); });
+  island.addEventListener('mouseleave', () => { if (!window.__adaMain) onPointer(false); });
+  ada.on('island:pointer', () => { window.__adaMain = true; });
+
+  // Report the island's outline so the main process knows where clicks belong.
+  let lastRect = '';
+  function reportRect() {
+    const r = island.getBoundingClientRect();
+    const key = `${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.width)},${Math.round(r.height)}`;
+    if (key === lastRect) return;
+    lastRect = key;
+    ada.rect({ x: r.left, y: r.top, w: r.width, h: r.height });
+  }
+  island.addEventListener('transitionend', reportRect);
+  setInterval(reportRect, 100);
+  Ada.afterPointerAction = () => { ada.hold(ui.drag || ui.holdOpen); if (!ui.pointer && !ui.holdOpen) closePanel(); };
 
   // Inputs: make the window focusable only while typing.
   island.addEventListener('mousedown', (e) => {
     const field = e.target.closest('input[type="text"], input[type="search"], textarea');
     if (!field) return;
     ui.holdOpen = true;
+    ada.hold(true);
     ada.focusable(true);
     setTimeout(() => field.focus(), 30);
   });
@@ -428,7 +450,8 @@
       if (a && inner.contains(a) && a.matches('input, textarea')) return;
       ui.holdOpen = false;
       ada.focusable(false);
-      if (!island.matches(':hover')) { ada.mouse(false); closePanel(); }
+      ada.hold(ui.drag);
+      if (!ui.pointer) closePanel();
     }, 50);
   });
   window.addEventListener('blur', () => {
@@ -443,9 +466,37 @@
     }
   });
 
-  island.addEventListener('click', (e) => {
+  // Buttons act on press. The island re-draws often (music, timers); waiting for a full
+  // click means a re-draw between press and release could swallow it.
+  let pressTimer = null;
+  island.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    pressed = true;
+    ada.hold(true);
+    // if the release is ever missed, don't stay frozen
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(() => { pressed = false; ada.hold(ui.drag || ui.holdOpen); }, 1500);
     const el = e.target.closest('[data-act]');
-    if (!el) return;
+    if (!el || el.disabled) return;
+    if (el.closest('[data-seek]')) return;
+    e.preventDefault();
+    handleAct(el, e);
+  });
+  window.addEventListener('pointerup', () => {
+    if (!pressed) return;
+    pressed = false;
+    clearTimeout(pressTimer);
+    ada.hold(ui.drag || ui.holdOpen);
+    setTimeout(render, 0);
+  });
+  // keyboard (Enter / Space on a focused button) still arrives as a click with detail 0
+  island.addEventListener('click', (e) => {
+    if (e.detail !== 0) return;
+    const el = e.target.closest('[data-act]');
+    if (el && !el.disabled) handleAct(el, e);
+  });
+
+  function handleAct(el, e) {
     activity();
     const { act, id } = el.dataset;
     if (act === 'tab') {
@@ -472,7 +523,7 @@
     for (const t of tabs) {
       if (t.onAct && t.onAct(act, id, el, e) === true) return;
     }
-  });
+  }
 
   function onAnswer(act, el) {
     const s = S.claude.sessions.find((x) => x.status === 'question' && x.question && x.question.askId);

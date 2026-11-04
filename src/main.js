@@ -105,7 +105,7 @@ function createWindow() {
   win.setIgnoreMouseEvents(true, { forward: true });
   win.loadFile(path.join(__dirname, 'renderer', 'island.html'));
   win.webContents.on('did-finish-load', () => win.webContents.setZoomFactor(b.scale));
-  win.once('ready-to-show', () => applyVisibility());
+  win.once('ready-to-show', () => { applyVisibility(); startPointerWatch(); });
   // ADA_DEBUG=1: print renderer errors to the terminal (used for testing).
   if (process.env.ADA_DEBUG) {
     win.webContents.on('console-message', (_e, level, message, line, source) => {
@@ -591,9 +591,46 @@ function registerShortcuts() {
 }
 
 // ================================================================= ipc: island
-ipcMain.on('island:mouse', (_e, inside) => {
-  if (win) win.setIgnoreMouseEvents(!inside, { forward: true });
+// ---- click-through
+// The island window is transparent and covers more than the island itself. The main process
+// checks where the cursor is (25 times a second) against the island's real outline and only
+// takes mouse input while the cursor is over it. DOM mouseenter/mouseleave is not reliable for
+// this on Windows: after a click in a non-activating window it can report a leave, and the
+// next click would fall through to the app below.
+let islandRect = null;           // CSS px inside the window, already scaled to DIPs
+let pointerInside = false;
+let holdPointer = false;         // dragging a slider or typing: keep the input
+let pointerTimer = null;
+
+ipcMain.on('island:rect', (_e, r) => {
+  if (!r || !win || win.isDestroyed()) return;
+  const z = win.webContents.getZoomFactor();
+  islandRect = { x: r.x * z, y: r.y * z, w: r.w * z, h: r.h * z };
 });
+ipcMain.on('island:hold', (_e, on) => { holdPointer = !!on; });
+// kept for older renderers
+ipcMain.on('island:mouse', () => {});
+
+function setPointer(inside) {
+  if (inside === pointerInside) return;
+  pointerInside = inside;
+  win.setIgnoreMouseEvents(!inside, { forward: true });
+  send('island:pointer', inside);
+}
+
+function startPointerWatch() {
+  clearInterval(pointerTimer);
+  pointerTimer = setInterval(() => {
+    if (!win || win.isDestroyed() || !win.isVisible() || !islandRect) return;
+    if (holdPointer) return setPointer(true);
+    const p = screen.getCursorScreenPoint();
+    const b = win.getBounds();
+    const m = 3; // a little slack around the rounded edges
+    const inside = p.x >= b.x + islandRect.x - m && p.x <= b.x + islandRect.x + islandRect.w + m
+      && p.y >= b.y + islandRect.y - m && p.y <= b.y + islandRect.y + islandRect.h + m;
+    setPointer(inside);
+  }, 40);
+}
 
 // Typing in the island (notes, calculator, serial) needs a focusable window for a moment.
 ipcMain.on('island:focusable', (_e, on) => {
@@ -881,6 +918,7 @@ app.on('will-quit', () => globalShortcut.unregisterAll());
 
 app.on('before-quit', () => {
   clearInterval(minuteTimer);
+  clearInterval(pointerTimer);
   if (spotify) { spotify.stop(); spotify.closeAuthServer(); }
   if (watcher) watcher.stop();
   if (server) server.stop();

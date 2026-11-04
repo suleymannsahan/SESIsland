@@ -268,6 +268,7 @@
         const box = Ada.$('[data-msearch]');
         if (!box) return;
         ui.holdOpen = true;
+        ada.hold(true);
         ada.focusable(true);
         setTimeout(() => { box.focus(); box.select(); }, 40);
       }, 160);
@@ -331,6 +332,7 @@
       return Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)) * dur;
     };
     ui.drag = true;
+    ada.hold(true);
     m.seekDrag = at(e);
     tick(Ada.inner, true);
     const move = (ev) => { m.seekDrag = at(ev); tick(Ada.inner, true); };
@@ -341,7 +343,7 @@
       m.seekDrag = null;
       ui.drag = false;
       act('seek', ms);
-      if (!island.matches(':hover')) { ada.mouse(false); Ada.closePanel(); }
+      Ada.afterPointerAction();
     };
     window.addEventListener('mousemove', move);
     window.addEventListener('mouseup', up);
@@ -350,6 +352,7 @@
   island.addEventListener('input', (e) => {
     if (e.target.matches('[data-msearch]')) return onSearchInput(e.target.value);
     if (!e.target.matches('[data-vol]')) return;
+    if (!ui.drag) ada.hold(true);
     ui.drag = true;
     const n = Ada.$('[data-live="volnum"]');
     if (n) n.textContent = e.target.value;
@@ -359,7 +362,7 @@
     if (!e.target.matches('[data-vol]')) return;
     ui.drag = false;
     ada.call('volume', 'set', Number(e.target.value));
-    if (!island.matches(':hover') && !ui.holdOpen) { ada.mouse(false); Ada.closePanel(); }
+    Ada.afterPointerAction();
   });
   island.addEventListener('keydown', (e) => {
     if (!e.target.matches('[data-msearch]')) return;
