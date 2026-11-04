@@ -858,7 +858,7 @@ ipcMain.handle('settings:get', () => ({
 
 const SETTABLE = {
   sound: 'bool', notifications: 'bool', desktopWatcher: 'bool', hideFullscreen: 'bool', sleepy: 'bool',
-  albumColor: 'bool', shortcuts: 'bool', clipboard: 'bool', translateLyrics: 'bool',
+  albumColor: 'bool', glass: 'bool', shortcuts: 'bool', clipboard: 'bool', translateLyrics: 'bool',
   position: ['center', 'left', 'right'], display: 'int', scale: 'num', summaryTime: 'hm', classReminder: 'int', updateRepo: 'repo',
 };
 

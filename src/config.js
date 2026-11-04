@@ -16,6 +16,7 @@ const DEFAULTS = {
   hideFullscreen: true,      // step aside for fullscreen games, videos and slides
   sleepy: true,              // shrink and dim when nothing happens for a while
   albumColor: true,          // tint the island with the album cover's colour
+  glass: true,               // frosted, translucent island
   shortcuts: true,
   clipboard: true,
   translateLyrics: false,

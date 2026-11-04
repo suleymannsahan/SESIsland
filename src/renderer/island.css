@@ -42,7 +42,7 @@ body[data-pos="right"] #stage { align-items: flex-end; padding-right: 4px; }
   position: relative;
   width: 64px; height: 30px;
   background: var(--sea);
-  border-radius: 999px;
+  border-radius: 15px;
   overflow: hidden;
   box-shadow:
     0 0 0 1px rgba(232, 238, 243, .07) inset,
@@ -51,7 +51,7 @@ body[data-pos="right"] #stage { align-items: flex-end; padding-right: 4px; }
   transition:
     width .42s var(--ease),
     height .42s var(--ease),
-    border-radius .42s var(--ease);
+    border-radius .32s ease-out;
 }
 #island[data-status="working"]  { --accent: var(--deniz); }
 #island[data-status="waiting"],
@@ -61,17 +61,21 @@ body[data-pos="right"] #stage { align-items: flex-end; padding-right: 4px; }
 #island[data-status="focus"]    { --accent: var(--deniz); }
 #island[data-status="break"]    { --accent: var(--yosun); }
 #island[data-status="class"]    { --accent: var(--lila); }
-#island.mode-sleepy { width: 40px !important; height: 22px !important; opacity: .45; transition: width .8s ease, height .8s ease, opacity .8s ease; }
+#island.mode-sleepy { width: 40px !important; height: 22px !important; border-radius: 11px; opacity: .45; transition: width .8s ease, height .8s ease, opacity .8s ease, border-radius .8s ease; }
 #island.mode-sleepy .rest { width: 40px; height: 22px; }
 #island.mode-sleepy .glyph { width: 6px; height: 6px; }
 
+#island.mode-pill { border-radius: 17px; }
 #island.mode-list, #island.mode-card { border-radius: 24px; }
 
-#inner {
-  position: absolute; top: 0; left: 0;
-  transition: opacity .18s ease;
+#inner, .ghost {
+  position: absolute; top: 0; left: 50%;
+  transform: translateX(-50%);
+  transform-origin: top center;
 }
-#inner.fading { opacity: 0; }
+body[data-pos="left"] #inner, body[data-pos="left"] .ghost { left: 0; transform: none; transform-origin: top left; }
+body[data-pos="right"] #inner, body[data-pos="right"] .ghost { left: auto; right: 0; transform: none; transform-origin: top right; }
+.ghost { pointer-events: none; z-index: 2; }
 
 /* ---------------------------------------------------------------- tide line (working) */
 .tide {
@@ -578,3 +582,79 @@ textarea { flex: 1; resize: none; padding: 10px 12px; line-height: 1.45; font-si
 .btn-allow.sm { height: 28px; padding: 0 14px; font-size: 12px; }
 .spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(155, 209, 122, .25); border-top-color: var(--yosun); animation: spin .8s linear infinite; flex: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* =================================================================== 0.5: morph, glass, scroll HUD */
+/* shared text must be a box for transforms; keep the ellipsis */
+span[data-morph-text] { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+.t-name span[data-morph-text], .t-artist span[data-morph-text] { display: block; }
+[data-morph] { will-change: transform; }
+
+/* frosted glass: a translucent tint with a soft top light and a thin bright rim */
+body.glass #island {
+  background:
+    radial-gradient(120% 140% at 50% -40%, rgba(255, 255, 255, .10), transparent 55%),
+    linear-gradient(180deg, rgba(36, 50, 68, .80), rgba(20, 29, 41, .86));
+  box-shadow:
+    0 0 0 1px rgba(232, 238, 243, .10) inset,
+    0 1px 0 rgba(255, 255, 255, .10) inset,
+    0 12px 34px -10px rgba(5, 12, 22, .6),
+    0 2px 8px rgba(5, 12, 22, .35);
+}
+body.glass #toast, body.glass #hud { background: rgba(26, 37, 51, .88); }
+body.glass .tile, body.glass .segs { background: rgba(0, 0, 0, .14); }
+
+/* little volume / track HUD under the island for scroll gestures */
+#hud {
+  margin-top: 8px; height: 30px; padding: 0 14px 0 10px; border-radius: 999px;
+  display: flex; align-items: center; gap: 10px;
+  background: var(--sea); color: var(--foam); font-size: 12px; font-weight: 600;
+  box-shadow: 0 0 0 1px rgba(232, 238, 243, .08) inset, 0 8px 20px -8px rgba(5, 12, 22, .6);
+  animation: toast-in .25s var(--ease);
+}
+#hud[hidden] { display: none; }
+#hud svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
+#hud svg .f { fill: currentColor; stroke: none; }
+#hud .hbar { width: 120px; height: 4px; border-radius: 2px; background: rgba(232, 238, 243, .14); overflow: hidden; }
+#hud .hbar b { display: block; height: 100%; background: var(--album, var(--yosun)); border-radius: 2px; transition: width .12s ease; }
+#hud .hv { min-width: 26px; text-align: right; font-variant-numeric: tabular-nums; color: var(--mist); }
+
+/* =================================================================== the lighthouse */
+.fener { --lamp: #f5d58a; position: relative; width: 26px; height: 22px; display: inline-grid; place-items: center; flex: none; cursor: default; }
+.fener svg { width: 40px; height: 24px; overflow: visible; display: block; }
+.fener .tower, .fener .roof { fill: #e8eef3; }
+.fener .stripe { fill: #f07c6b; }
+.fener .rail, .fener .base { fill: #93a3b4; }
+.fener .lamp { fill: var(--lamp); filter: drop-shadow(0 0 2px var(--lamp)); transition: fill .4s ease; }
+.fener .beam-l, .fener .beam-r { opacity: 0; transform-box: view-box; transform-origin: 12px 6px; transition: opacity .4s ease; }
+.fener .spark { fill: #fff; opacity: 0; transform-box: fill-box; transform-origin: center; }
+
+.fener[data-mood="idle"] .lamp { animation: breathe 3.2s ease-in-out infinite; }
+@keyframes breathe { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+
+.fener[data-mood="working"] { --lamp: #8fe3df; }
+.fener[data-mood="working"] .beam-l { animation: sweep-l 2.4s ease-in-out infinite; }
+.fener[data-mood="working"] .beam-r { animation: sweep-r 2.4s ease-in-out infinite; }
+@keyframes sweep-l { 0%, 100% { opacity: .9; transform: scaleX(1); } 50% { opacity: 0; transform: scaleX(.2); } }
+@keyframes sweep-r { 0%, 100% { opacity: 0; transform: scaleX(.2); } 50% { opacity: .9; transform: scaleX(1); } }
+
+.fener[data-mood="waiting"] { --lamp: #f2b544; }
+.fener[data-mood="waiting"] .lamp { animation: blink .7s steps(2, jump-none) infinite; }
+.fener[data-mood="waiting"] .beam-l, .fener[data-mood="waiting"] .beam-r { opacity: .55; animation: blink .7s steps(2, jump-none) infinite; }
+@keyframes blink { 0% { opacity: 1; } 100% { opacity: .25; } }
+
+.fener[data-mood="done"] { --lamp: #b7e89a; }
+.fener[data-mood="done"] .spark { animation: spark 1.6s ease-out 1; }
+@keyframes spark { 0% { opacity: 0; transform: scale(.2); } 25% { opacity: 1; transform: scale(1.4); } 100% { opacity: 0; transform: scale(.4) translate(2px, -2px); } }
+
+.fener[data-mood="sleep"] .lamp { fill: #4a5a6c; filter: none; animation: none; }
+.fener[data-mood="sleep"] { opacity: .8; }
+
+/* click: a quick wink of light */
+.fener.wink .beam-l, .fener.wink .beam-r { animation: wink .5s ease-out 1 !important; }
+.fener.wink .lamp { animation: wink-lamp .5s ease-out 1 !important; }
+@keyframes wink { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes wink-lamp { 30% { fill: #fff; } }
+
+.rest .fener { transform: translateY(1px); }
+#island.mode-sleepy .fener { transform: scale(.75); }
+.pill .fener { margin-left: -4px; }

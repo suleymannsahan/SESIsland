@@ -76,10 +76,10 @@
     const repeatOn = p.repeat !== 'off';
     return `
       <div class="np">
-        ${t.cover ? `<img class="cover" src="${esc(t.cover)}" alt="">` : '<span class="cover"></span>'}
+        ${t.cover ? `<img class="cover" src="${esc(t.cover)}" alt="" data-morph="cover">` : '<span class="cover" data-morph="cover"></span>'}
         <div class="meta">
-          <div class="t-name" title="${esc(t.name)}">${esc(t.name)}</div>
-          <div class="t-artist" title="${esc(t.artists)}">${esc(t.artists)}</div>
+          <div class="t-name" title="${esc(t.name)}"><span data-morph="title" data-morph-text>${esc(t.name)}</span></div>
+          <div class="t-artist" title="${esc(t.artists)}"><span data-morph="artist" data-morph-text>${esc(t.artists)}</span></div>
           ${p.device ? `<div class="t-dev">${deviceIcon(p.device.type)}<span>${esc(p.device.name)}</span></div>` : ''}
         </div>
         ${t.episode ? '' : `<div class="np-acts">
@@ -438,9 +438,9 @@
       return {
         status: 'music',
         html: `<div class="pill music-pill">
-          ${t.coverSmall ? `<img class="mini-cover" src="${esc(t.coverSmall)}" alt="">` : '<span class="mini-cover"></span>'}
-          <span class="proj">${esc(t.name)}</span>
-          <span class="act">${esc(t.artists)}</span>
+          ${t.coverSmall ? `<img class="mini-cover" src="${esc(t.coverSmall)}" alt="" data-morph="cover">` : '<span class="mini-cover" data-morph="cover"></span>'}
+          <span class="proj" data-morph="title" data-morph-text>${esc(t.name)}</span>
+          <span class="act" data-morph="artist" data-morph-text>${esc(t.artists)}</span>
           <span class="eq on" aria-hidden="true"><i></i><i></i><i></i></span>
           <span class="mini-prog" aria-hidden="true"><b data-live="pillfill"></b></span>
         </div>`,

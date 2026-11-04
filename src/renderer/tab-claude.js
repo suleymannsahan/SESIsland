@@ -46,10 +46,11 @@
       return p && live(p);
     },
     body() {
+      const lead = primarySession();
       const rows = S.claude.sessions.map((s) => `
         <button class="row" data-act="jump" data-id="${esc(s.id)}" title="Pencereye git">
-          <span class="glyph" data-s="${esc(s.status)}"></span>
-          <span class="proj">${esc(s.project)}<span class="src">${sourceName(s)}</span></span>
+          <span class="glyph" data-s="${esc(s.status)}" ${s === lead ? 'data-morph="glyph"' : ''}></span>
+          <span class="proj"><span ${s === lead ? 'data-morph="proj" data-morph-text' : ''}>${esc(s.project)}</span><span class="src">${sourceName(s)}</span></span>
           <span class="time">${ago(s.updatedAt)}</span>
           <span class="act">${esc(s.status === 'done' && s.lastMessage ? s.lastMessage : s.activity)}</span>
         </button>`).join('');

@@ -6,6 +6,7 @@
   const island = document.getElementById('island');
   const inner = document.getElementById('inner');
   const toastEl = document.getElementById('toast');
+  const hudEl = document.getElementById('hud');
 
   // ------------------------------------------------------------ shared state
   const S = {
@@ -115,8 +116,8 @@
       mode: 'card', status: 'waiting', key: 'perm:' + p.id,
       html: `<div class="card">
         <div class="card-head">
-          <span class="glyph" data-s="waiting"></span>
-          <span class="proj">${esc(p.project)}</span>
+          <span class="glyph" data-s="waiting" data-morph="glyph"></span>
+          <span class="proj" data-morph="proj" data-morph-text>${esc(p.project)}</span>
           <span class="what">izin istiyor</span>
           ${more > 0 ? `<span class="queue">${more} istek daha</span>` : ''}
         </div>
@@ -142,7 +143,7 @@
       return {
         mode: 'card', status: 'question', key: 'q:' + s.id + q.text,
         html: `<div class="card">
-          <div class="card-head"><span class="glyph" data-s="question"></span><span class="proj">${esc(s.project)}</span><span class="what">soru soruyor</span></div>
+          <div class="card-head"><span class="glyph" data-s="question" data-morph="glyph"></span><span class="proj" data-morph="proj" data-morph-text>${esc(s.project)}</span><span class="what">soru soruyor</span></div>
           <h2>${esc(q.text)}</h2>
           ${q.options && q.options.length ? `<div class="opts">${q.options.map((o) => `<span>${esc(o)}</span>`).join('')}</div>` : ''}
           <p class="msg">${s.source === 'desktop' ? "Yanıtını Claude Desktop'ta ver." : 'Yanıtını terminalde ver.'}</p>
@@ -167,7 +168,7 @@
     return {
       mode: 'card', status: 'question', key: 'ask:' + q.askId,
       html: `<div class="card">
-        <div class="card-head"><span class="glyph" data-s="question"></span><span class="proj">${esc(s.project)}</span><span class="what">soru soruyor</span></div>
+        <div class="card-head"><span class="glyph" data-s="question" data-morph="glyph"></span><span class="proj" data-morph="proj" data-morph-text>${esc(s.project)}</span><span class="what">soru soruyor</span></div>
         ${blocks}
         <div class="actions">
           ${needSend ? `<button class="btn-allow" data-act="sendAnswers" data-id="${esc(q.askId)}" ${ready ? '' : 'disabled'}>Gönder</button>` : ''}
@@ -183,7 +184,7 @@
     return {
       mode: 'card', status: 'done', key: 'done:' + d.sessionId + d.until,
       html: `<div class="card" data-act="dismiss" data-id="${esc(d.sessionId)}">
-        <div class="card-head"><span class="glyph" data-s="done"></span><span class="proj">${esc(d.project)}</span><span class="what">tamamlandı</span></div>
+        <div class="card-head"><span class="glyph" data-s="done" data-morph="glyph"></span><span class="proj" data-morph="proj" data-morph-text>${esc(d.project)}</span><span class="what">tamamlandı</span></div>
         ${d.summary ? `<p class="msg">${esc(d.summary)}</p>` : ''}
       </div>`,
     };
@@ -193,10 +194,35 @@
     return { mode: 'card', status: c.status || 'idle', key: 'info:' + c.key, html: `<div class="card info-card" ${c.sticky ? '' : 'data-act="closeCard"'}>${c.html}</div>` };
   }
 
+  // ------------------------------------------------------------ the lighthouse (Ada's mascot)
+  // mood: idle | working | waiting | done | sleep
+  function lighthouse(mood) {
+    return `<span class="fener" data-mood="${mood}" data-act="fener" data-morph="glyph" aria-hidden="true">
+      <svg viewBox="-8 0 40 24">
+        <defs>
+          <linearGradient id="beamL" x1="1" x2="0"><stop offset="0" stop-color="var(--lamp)" stop-opacity=".55"/><stop offset="1" stop-color="var(--lamp)" stop-opacity="0"/></linearGradient>
+          <linearGradient id="beamR" x1="0" x2="1"><stop offset="0" stop-color="var(--lamp)" stop-opacity=".55"/><stop offset="1" stop-color="var(--lamp)" stop-opacity="0"/></linearGradient>
+        </defs>
+        <polygon class="beam-l" points="12,6 -8,1.5 -8,10.5" fill="url(#beamL)"/>
+        <polygon class="beam-r" points="12,6 32,1.5 32,10.5" fill="url(#beamR)"/>
+        <polygon class="roof" points="8.6,4.2 12,1.6 15.4,4.2"/>
+        <rect class="lamp" x="9.6" y="4.2" width="4.8" height="3.6" rx=".8"/>
+        <rect class="rail" x="8.8" y="7.8" width="6.4" height="1.1" rx=".4"/>
+        <polygon class="tower" points="10,8.9 14,8.9 15.3,21 8.7,21"/>
+        <polygon class="stripe" points="9.6,12.4 14.4,12.4 14.7,14.6 9.3,14.6"/>
+        <polygon class="stripe" points="9.1,17 14.9,17 15.1,19 8.9,19"/>
+        <rect class="base" x="7.2" y="21" width="9.6" height="1.6" rx=".8"/>
+        <circle class="spark" cx="18.5" cy="3" r="1.1"/>
+      </svg>
+    </span>`;
+  }
+  Ada.lighthouse = lighthouse;
+  const moodOf = (status) => ({ working: 'working', waiting: 'waiting', question: 'waiting', done: 'done' }[status] || 'idle');
+
   // ------------------------------------------------------------ collapsed views
   function viewRest() {
     const sleepy = S.config.sleepy !== false && Date.now() - ui.lastActivity > 90 * 1000;
-    return { mode: sleepy ? 'rest sleepy' : 'rest', status: 'idle', html: `<div class="rest"><span class="glyph" data-s="idle"></span></div>` };
+    return { mode: sleepy ? 'rest sleepy' : 'rest', status: 'idle', html: `<div class="rest">${lighthouse(sleepy ? 'sleep' : 'idle')}</div>` };
   }
 
   function viewPill(s) {
@@ -204,8 +230,8 @@
     return {
       mode: 'pill', status: s.status,
       html: `<div class="pill">
-        <span class="glyph" data-s="${esc(s.status)}"></span>
-        <span class="proj">${esc(s.project)}</span>
+        ${lighthouse(moodOf(s.status))}
+        <span class="proj" data-morph="proj" data-morph-text>${esc(s.project)}</span>
         <span class="act">${esc(s.activity)}</span>
         ${others > 0 ? `<span class="count" title="Diğer oturumlar">+${others}</span>` : ''}
       </div>`,
@@ -302,10 +328,66 @@
       if (t && t.after) t.after(inner, true);
       tick(true);
     };
-    if (modeChanged && inner.innerHTML) {
-      inner.classList.add('fading');
-      setTimeout(() => { apply(); inner.classList.remove('fading'); }, 110);
-    } else apply();
+    if (modeChanged && inner.innerHTML && !reduceMotion()) morph(apply);
+    else apply();
+  }
+
+  // ------------------------------------------------------------ morph between views
+  // Elements tagged data-morph="name" in both the old and the new view (album cover, title,
+  // status dot, pomodoro ring…) fly from their old place to the new one while the island
+  // resizes around them; everything else cross-fades. The content is anchored to the island's
+  // centre (left/right edge when Ada sits at a side), so nothing slides while the island grows.
+  const EASE = 'cubic-bezier(.2, .9, .25, 1.12)';
+  const reduceMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function morph(apply) {
+    const before = {};
+    inner.querySelectorAll('[data-morph]').forEach((el) => {
+      if (!(el.dataset.morph in before)) before[el.dataset.morph] = el.getBoundingClientRect();
+    });
+    // the old view stays on top for a moment as a fading ghost
+    const ghost = inner.cloneNode(true);
+    ghost.removeAttribute('id');
+    ghost.classList.add('ghost');
+    ghost.querySelectorAll('[data-morph]').forEach((el) => { if (el.dataset.morph in before) el.style.visibility = 'hidden'; });
+    island.appendChild(ghost);
+    ghost.animate([{ opacity: 1 }, { opacity: 0, filter: 'blur(2px)' }], { duration: 160, easing: 'ease-out', fill: 'forwards' })
+      .onfinish = () => ghost.remove();
+
+    apply();
+
+    inner.animate([{ opacity: 0, transform: anchorTransform(0.97) }, { opacity: 1, transform: anchorTransform(1) }],
+      { duration: 280, delay: 40, easing: EASE, fill: 'backwards' });
+    inner.querySelectorAll('[data-morph]').forEach((el) => {
+      const a = before[el.dataset.morph];
+      if (!a) return;
+      const b = el.getBoundingClientRect();
+      if (!b.width || !b.height) return;
+      const dx = a.left + a.width / 2 - (b.left + b.width / 2);
+      const dy = a.top + a.height / 2 - (b.top + b.height / 2);
+      const sx = a.width / b.width;
+      const sy = a.height / b.height;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(sx - 1) < 0.02) return;
+      // the shared element is visible from the first frame, even while its container fades in
+      if (el.hasAttribute('data-morph-text')) {
+        // text keeps its proportions: scale by line height, anchored at its top-left corner
+        const k = a.height / b.height;
+        el.animate([
+          { transform: `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${k})`, transformOrigin: 'left top', opacity: 1 },
+          { transform: 'none', transformOrigin: 'left top', opacity: 1 },
+        ], { duration: 460, easing: EASE });
+        return;
+      }
+      el.animate([
+        { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, transformOrigin: 'center', opacity: 1 },
+        { transform: 'none', transformOrigin: 'center', opacity: 1 },
+      ], { duration: 460, easing: EASE });
+    });
+  }
+
+  function anchorTransform(scale) {
+    const pos = document.body.dataset.pos || 'center';
+    return pos === 'center' ? `translateX(-50%) scale(${scale})` : `scale(${scale})`;
   }
 
   // Inline style attributes are blocked by the page's CSP; sizes come as data-w / data-h instead.
@@ -363,6 +445,50 @@
       });
     } catch { /* audio unavailable */ }
   }
+
+  function applyBodyConfig(c) {
+    document.body.dataset.pos = c.position || 'center';
+    document.body.classList.toggle('glass', c.glass !== false);
+  }
+
+  // ------------------------------------------------------------ scroll gestures
+  // Over the island (outside lists and text): wheel up/down = computer volume,
+  // horizontal swipe (touchpad) or Shift+wheel = next / previous song.
+  let hudTimer = null;
+  function hud(html) {
+    hudEl.innerHTML = html;
+    hudEl.hidden = false;
+    clearTimeout(hudTimer);
+    hudTimer = setTimeout(() => { hudEl.hidden = true; }, 1100);
+  }
+  Ada.hud = hud;
+  let swipe = 0;
+  let swipeLock = 0;
+  island.addEventListener('wheel', (e) => {
+    if (e.target.closest('.sub, .rows, .s-log, textarea, .clips, .cls, .hist, .list, .lyrics, .vol, input')) return;
+    const horizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey;
+    e.preventDefault();
+    if (horizontal) {
+      if (Date.now() < swipeLock) return;
+      swipe += e.shiftKey ? e.deltaY : e.deltaX;
+      if (Math.abs(swipe) < 60) return;
+      const dir = swipe > 0 ? 'next' : 'prev';
+      swipe = 0;
+      swipeLock = Date.now() + 700;
+      if (!S.music || !S.music.connected) return;
+      ada.music(dir).then((r) => { if (r && !r.ok) toast({ kind: 'error', text: r.error }); });
+      hud(`${dir === 'next' ? I.next : I.prev}<span>${dir === 'next' ? 'Sonraki şarkı' : 'Önceki şarkı'}</span>`);
+      return;
+    }
+    const v = S.mods.volume;
+    if (!v || !v.available || v.vol == null) return;
+    const step = e.deltaY < 0 ? 2 : -2;
+    const nv = Math.max(0, Math.min(100, v.vol + step));
+    S.mods.volume = { ...v, vol: nv, muted: nv === 0 ? v.muted : false };
+    ada.call('volume', 'set', nv);
+    hud(`${nv === 0 || S.mods.volume.muted ? I.volOff : I.vol}<span class="hbar"><b data-w="${nv}"></b></span><span class="hv">${nv}</span>`);
+    hudEl.querySelector('[data-w]').style.width = nv + '%';
+  }, { passive: false });
 
   // ------------------------------------------------------------ toast
   let toastTimer = null;
@@ -517,6 +643,11 @@
       render();
       return;
     }
+    if (act === 'fener') {
+      const f = el.closest('.fener');
+      f.classList.remove('wink'); void f.offsetWidth; f.classList.add('wink');
+      return;
+    }
     if (act === 'settings') { ada.openSettings(id || ''); return; }
     if (act === 'dismiss') { ada.dismiss(id); doneCard = null; render(); return; }
     if (act === 'closeCard') { card = null; render(); return; }
@@ -607,7 +738,7 @@
   ada.on('music:state', (m) => { S.music = m; for (const t of tabs) if (t.onMusic) t.onMusic(m); render(); });
   ada.on('mod:state', ({ mod, data }) => { S.mods[mod] = data; for (const t of tabs) if (t.onMod) t.onMod(mod, data); render(); });
   ada.on('island:toast', toast);
-  ada.on('island:config', (c) => { S.config = c; document.body.dataset.pos = c.position || 'center'; for (const t of tabs) if (t.onConfig) t.onConfig(c); render(); });
+  ada.on('island:config', (c) => { S.config = c; applyBodyConfig(c); for (const t of tabs) if (t.onConfig) t.onConfig(c); render(); });
   ada.on('island:expand', () => {
     openPanel();
     setTimeout(() => { if (!island.matches(':hover')) closePanel(); }, 5000);
@@ -615,7 +746,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     ada.init().then(({ config, state, music, mods }) => {
-      if (config) { S.config = config; document.body.dataset.pos = config.position || 'center'; }
+      if (config) { S.config = config; applyBodyConfig(config); }
       if (state) S.claude = state;
       if (music) S.music = music;
       if (mods) Object.assign(S.mods, mods);

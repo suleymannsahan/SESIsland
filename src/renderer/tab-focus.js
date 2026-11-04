@@ -20,7 +20,7 @@
     const p = pomo();
 
     const tone = !p || p.phase === 'idle' ? 'idle' : p.phase === 'focus' ? 'focus' : 'break';
-    return `<svg class="ring ${tone} ${p && p.paused ? 'paused' : ''}" viewBox="0 0 120 120" width="${size}" height="${size}" aria-hidden="true">
+    return `<svg data-morph="ring" class="ring ${tone} ${p && p.paused ? 'paused' : ''}" viewBox="0 0 120 120" width="${size}" height="${size}" aria-hidden="true">
       <circle class="track" cx="60" cy="60" r="${R}" stroke-width="${stroke}"/>
       <circle class="prog" cx="60" cy="60" r="${R}" stroke-width="${stroke}" stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${C.toFixed(2)}" data-live="ring"/>
     </svg>`;
@@ -38,7 +38,7 @@
         <div class="ring-wrap">
           ${ringHtml(132, 7)}
           <div class="ring-text">
-            <span class="r-time" data-live="ptime"></span>
+            <span class="r-time" data-live="ptime" data-morph="ptime" data-morph-text></span>
             <span class="r-phase">${PHASE[p.phase]}${p.paused && p.phase !== 'idle' ? ' · duraklatıldı' : ''}</span>
           </div>
         </div>
@@ -120,7 +120,7 @@
         html: `<div class="pill pomo-pill">
           ${ringHtml(22, 14)}
           <span class="proj">${PHASE[p.phase]}</span>
-          <span class="act" data-live="ptime"></span>
+          <span class="act" data-live="ptime" data-morph="ptime" data-morph-text></span>
           ${p.paused ? '<span class="act">· duraklatıldı</span>' : ''}
           ${t ? `<span class="eq on" aria-hidden="true"><i></i><i></i><i></i></span><span class="act tname">${esc(t.name)}</span>` : ''}
         </div>`,

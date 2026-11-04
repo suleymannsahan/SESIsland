@@ -54,6 +54,8 @@ function Emit($obj) {
 
 $last = ''
 $prevRaw = ''
+$calm = 0
+$pause = $IntervalMs
 while ($true) {
   $t0 = Get-Date
   $state = 'gone'; $title = ''; $prompt = ''; $found = @(); $hints = @()
@@ -128,5 +130,13 @@ while ($true) {
     Emit @{ state = $state; title = $title; prompt = $prompt; buttons = @($found); hints = @($hints); windows = $winCount; elements = ($buttons.Count + $texts.Count); ms = $ms }
     $last = $key
   }
-  Start-Sleep -Milliseconds $IntervalMs
+    # Adaptive pace: look often while Claude is busy, rarely while idle or closed.
+  if ($state -eq 'working' -or $state -eq 'question' -or $state -eq 'permission') { $calm = 0; $pause = $IntervalMs }
+  else {
+    $calm = [Math]::Min($calm + 1, 1000)
+    if ($state -eq 'gone') { $pause = 4000 }
+    elseif ($calm -gt 8) { $pause = 2200 }     # idle for a while
+    else { $pause = 1000 }
+  }
+  Start-Sleep -Milliseconds $pause
 }
