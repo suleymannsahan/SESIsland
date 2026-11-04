@@ -1,4 +1,4 @@
-# Ada - serial port bridge. Uses .NET's System.IO.Ports, so no drivers or native modules are needed.
+﻿# Ada - serial port bridge. Uses .NET's System.IO.Ports, so no drivers or native modules are needed.
 #   -List            prints the available ports as JSON and exits
 #   -Port COM3 -Baud 115200   opens the port; every received line is printed to stdout,
 #                             every line written to stdin is sent to the device.

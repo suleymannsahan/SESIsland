@@ -1,4 +1,4 @@
-# Ada - window helper.
+﻿# Ada - window helper.
 #   -Watch                       prints {"fullscreen":true|false} whenever the foreground window
 #                                starts or stops covering its whole monitor (games, videos, slides).
 #   -Focus -Names a,b -Title x   brings the first window of those processes (title containing x
