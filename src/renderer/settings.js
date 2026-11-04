@@ -10,8 +10,9 @@
   // ------------------------------------------------------------ spotify
   function showSpotify(st) {
     $('redirect').textContent = st.redirectUri;
-    $('sp-badge').textContent = st.connected ? 'Bağlı' : 'Bağlı değil';
-    $('sp-badge').classList.toggle('ok', st.connected);
+    $('sp-badge').textContent = st.connected ? (st.needsReauth ? 'Yeniden bağlan' : 'Bağlı') : 'Bağlı değil';
+    $('sp-badge').classList.toggle('ok', st.connected && !st.needsReauth);
+    $('sp-reauth').hidden = !(st.connected && st.needsReauth);
     $('sp-connected').hidden = !st.connected;
     $('sp-setup').hidden = st.connected;
     if (st.clientId && !$('client-id').value) $('client-id').value = st.clientId;

@@ -20,6 +20,7 @@ const { WinCtl } = require('./winctl');
 const { ClaudeUsage } = require('./usage');
 const { Updater } = require('./updater');
 const { Store, today } = require('./store');
+const { SystemVolume } = require('./volume');
 
 const PORT = 47821;
 const BASE_W = 880;
@@ -45,6 +46,8 @@ let updater = null;
 let schedule = null;
 let notes = null;
 let minuteTimer = null;
+let sysVol = null;
+let launching = null;     // { name, arg, startedAt } while Spotify is being opened
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -340,7 +343,11 @@ function setupSpotify() {
   const vault = safeStorage.isEncryptionAvailable()
     ? { encrypt: (s) => safeStorage.encryptString(s), decrypt: (b) => { try { return safeStorage.decryptString(b); } catch { return null; } } }
     : null;
-  spotify = new Spotify(app.getPath('userData'), vault);
+  // ADA_SPOTIFY_API / ADA_SPOTIFY_ACCOUNTS point Ada at a fake Spotify for tests.
+  spotify = new Spotify(app.getPath('userData'), vault, {
+    api: process.env.ADA_SPOTIFY_API || undefined,
+    accounts: process.env.ADA_SPOTIFY_ACCOUNTS || undefined,
+  });
   lyrics = new Lyrics();
   let lastErr = 0;
   spotify.on('state', (st) => send('music:state', st));
@@ -371,14 +378,74 @@ function friendlySpotifyError(e) {
   return e.message;
 }
 
+const PLAY_ACTIONS = new Set(['toggle', 'playContext', 'playLiked', 'playTrack']);
+const noDevice = (e) => e && (e.reason === 'NO_ACTIVE_DEVICE' || e.status === 404 && /device/i.test(e.message));
+
 async function musicDo(name, arg) {
   if (!spotify || !spotify.status().connected) return { ok: false, error: 'Spotify bağlı değil' };
   try {
     await spotify.action(name, arg);
     return { ok: true };
   } catch (e) {
+    if (noDevice(e) && PLAY_ACTIONS.has(name)) return startOnDevice(name, arg);
     return { ok: false, error: friendlySpotifyError(e) };
   }
+}
+
+// Nothing is playing anywhere: use a Spotify that is open but idle, or open the Spotify app,
+// wait until it shows up as a device, then play what was asked.
+function pickDevice(list) {
+  if (!list || !list.length) return null;
+  return list.find((d) => d.type === 'Computer') || list[0];
+}
+
+async function startOnDevice(name, arg) {
+  try {
+    const now = pickDevice(await spotify.devices());
+    if (now) {
+      await spotify.action(name, arg, { deviceId: now.id });
+      return { ok: true };
+    }
+  } catch { /* fall through to launching */ }
+  if (launching) { launching = { name, arg, startedAt: launching.startedAt }; return { ok: true, launching: true }; }
+  launching = { name, arg, startedAt: Date.now() };
+  send('island:event', { type: 'spotify-launch', stage: 'opening' });
+  try {
+    await shell.openExternal('spotify:');
+  } catch {
+    // Spotify app not installed: the web player becomes a device once it loads
+    await shell.openExternal('https://open.spotify.com/').catch(() => {});
+  }
+  const deadline = Date.now() + 40 * 1000;
+  const poll = async () => {
+    if (!launching) return;
+    let dev = null;
+    try { dev = pickDevice(await spotify.devices()); } catch { /* keep waiting */ }
+    if (dev) {
+      const job = launching;
+      launching = null;
+      // a freshly opened app sometimes refuses the first command for a moment
+      for (let tries = 0; tries < 4; tries++) {
+        try {
+          await spotify.action(job.name, job.arg, { deviceId: dev.id });
+          send('island:event', { type: 'spotify-launch', stage: 'playing', device: dev.name });
+          return;
+        } catch (e) {
+          await new Promise((r) => setTimeout(r, 1500));
+          if (tries === 3) send('island:event', { type: 'spotify-launch', stage: 'failed', error: friendlySpotifyError(e) });
+        }
+      }
+      return;
+    }
+    if (Date.now() > deadline) {
+      launching = null;
+      send('island:event', { type: 'spotify-launch', stage: 'failed', error: 'Spotify açılmadı. Uygulamayı kendin açıp tekrar dene.' });
+      return;
+    }
+    setTimeout(poll, 1500);
+  };
+  setTimeout(poll, 2500);
+  return { ok: true, launching: true };
 }
 
 // ================================================================= pomodoro
@@ -440,6 +507,10 @@ function setupModules() {
   });
   updater.start();
 
+  sysVol = new SystemVolume(scriptsDir());
+  sysVol.on('state', (v) => mod('volume', v));
+  sysVol.start();
+
   winctl = new WinCtl(scriptsDir());
   winctl.on('fullscreen', (fs_) => { fullscreenHidden = fs_; applyVisibility(); });
   if (config.get().hideFullscreen) winctl.startWatch();
@@ -498,8 +569,9 @@ const SHORTCUTS = [
   ['CommandOrControl+Alt+Space', 'Müzik: oynat / duraklat', () => musicDo('toggle')],
   ['CommandOrControl+Alt+Right', 'Müzik: sonraki', () => musicDo('next')],
   ['CommandOrControl+Alt+Left', 'Müzik: önceki', () => musicDo('prev')],
-  ['CommandOrControl+Alt+Up', 'Müzik: ses +10', () => musicDo('volume', Math.min(100, ((spotify && spotify.state && spotify.state.volume) || 0) + 10))],
-  ['CommandOrControl+Alt+Down', 'Müzik: ses −10', () => musicDo('volume', Math.max(0, ((spotify && spotify.state && spotify.state.volume) || 0) - 10))],
+  ['CommandOrControl+Alt+Up', 'Bilgisayar sesi +5', () => sysVol.step(5)],
+  ['CommandOrControl+Alt+Down', 'Bilgisayar sesi −5', () => sysVol.step(-5)],
+  ['CommandOrControl+Alt+M', 'Bilgisayar sesini kapat / aç', () => sysVol.toggleMute()],
   ['CommandOrControl+Alt+Y', 'Claude: izin ver', () => decideFirst('allow') || send('island:toast', { kind: 'info', text: 'Bekleyen izin yok' })],
   ['CommandOrControl+Alt+N', 'Claude: reddet', () => decideFirst('deny') || send('island:toast', { kind: 'info', text: 'Bekleyen izin yok' })],
   ['CommandOrControl+Alt+P', 'Pomodoro: başlat / duraklat', () => pomo.toggle()],
@@ -564,6 +636,7 @@ ipcMain.handle('island:init', () => ({
     notes: notes ? notes.get() : null,
     usage: usage ? usage.state : null,
     update: updater ? updater.latest : null,
+    volume: sysVol ? sysVol.state : null,
   },
 }));
 
@@ -643,6 +716,19 @@ const CALLS = {
     set: (text) => { notes.set({ text: String(text || '').slice(0, 20000) }); return true; },
   },
   usage: { refresh: () => usage.refresh() },
+  volume: {
+    set: (v) => sysVol.set(v),
+    toggleMute: () => sysVol.toggleMute(),
+  },
+  spotify: {
+    search: (q) => spotify.search(q),
+    addToPlaylist: async ({ id, uri }) => {
+      try { await spotify.addToPlaylist(id, uri); return { ok: true }; } catch (e) {
+        if (e.status === 403) return { ok: false, error: 'Bu listeye ekleme izni yok · Ayarlar\'dan Spotify\'a yeniden bağlan', reauth: true };
+        return { ok: false, error: friendlySpotifyError(e) };
+      }
+    },
+  },
   update: {
     check: async () => {
       updater.setRepo(config.get().updateRepo);
@@ -801,6 +887,7 @@ app.on('before-quit', () => {
   if (serial) serial.close();
   if (winctl) winctl.stopWatch();
   if (sys) sys.stop();
+  if (sysVol) sysVol.stop();
   if (clip) clip.stop();
   if (usage) usage.stop();
   if (updater) updater.stop();

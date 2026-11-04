@@ -17,7 +17,11 @@ const SCOPES = [
   'playlist-read-collaborative',
   'user-library-read',
   'user-library-modify',
+  'playlist-modify-private',
+  'playlist-modify-public',
 ].join(' ');
+// Scopes added after the first release; an older login has to be renewed to get them.
+const NEW_SCOPES = ['playlist-modify-private', 'playlist-modify-public'];
 const API = 'https://api.spotify.com/v1';
 const ACCOUNTS = 'https://accounts.spotify.com';
 
@@ -49,6 +53,7 @@ class Spotify extends EventEmitter {
     this.accessToken = '';
     this.expiresAt = 0;
     this.userId = '';
+    this.scopes = '';
     this.state = null;          // last player state pushed to the UI
     this.timer = null;
     this.pollMs = 2000;
@@ -62,6 +67,7 @@ class Spotify extends EventEmitter {
     try {
       const raw = JSON.parse(fs.readFileSync(this.file, 'utf8'));
       this.clientId = raw.clientId || '';
+      this.scopes = raw.scopes || '';
       if (raw.refresh) {
         const buf = Buffer.from(raw.refresh, 'base64');
         this.refreshToken = (raw.enc && this.vault ? this.vault.decrypt(buf) : buf.toString('utf8')) || '';
@@ -77,7 +83,7 @@ class Spotify extends EventEmitter {
       if (e) { refresh = e.toString('base64'); enc = true; } else refresh = Buffer.from(this.refreshToken).toString('base64');
     }
     try {
-      fs.writeFileSync(this.file, JSON.stringify({ clientId: this.clientId, refresh, enc }, null, 2));
+      fs.writeFileSync(this.file, JSON.stringify({ clientId: this.clientId, refresh, enc, scopes: this.scopes }, null, 2));
     } catch { /* best effort */ }
   }
 
@@ -85,6 +91,8 @@ class Spotify extends EventEmitter {
     return {
       configured: !!this.clientId,
       connected: !!this.refreshToken,
+      // true when the saved login predates "add to playlist" and must be renewed once
+      needsReauth: !!this.refreshToken && !!this.scopes && NEW_SCOPES.some((x) => !this.scopes.split(' ').includes(x)),
       clientId: this.clientId,
       redirectUri: REDIRECT_URI,
     };
@@ -177,6 +185,7 @@ class Spotify extends EventEmitter {
     if (!res.ok) throw new SpotifyError(res.status, j.error_description || j.error || `Token hatası (${res.status})`, j.error);
     this.accessToken = j.access_token;
     this.expiresAt = Date.now() + (j.expires_in || 3600) * 1000 - 60 * 1000;
+    if (j.scope && j.scope !== this.scopes) { this.scopes = j.scope; this.save(); this.emit('status', this.status()); }
     if (j.refresh_token) { this.refreshToken = j.refresh_token; this.save(); }
   }
 
@@ -321,17 +330,25 @@ class Spotify extends EventEmitter {
     return s.isPlaying ? s.progress + (Date.now() - s.at) : s.progress;
   }
 
-  async action(name, arg) {
+  /** opts.deviceId plays on that device (used after launching Spotify). */
+  async action(name, arg, opts = {}) {
+    const dev = opts.deviceId ? `?device_id=${encodeURIComponent(opts.deviceId)}` : '';
     switch (name) {
       case 'toggle':
-        if (this.state && this.state.isPlaying) {
+        if (this.state && this.state.isPlaying && !opts.deviceId) {
           this.patch((s) => { s.progress = this.livePosition(); s.at = Date.now(); s.isPlaying = false; });
           await this.call('PUT', '/me/player/pause');
         } else {
           this.patch((s) => { s.at = Date.now(); s.isPlaying = true; });
-          await this.call('PUT', '/me/player/play');
+          await this.call('PUT', `/me/player/play${dev}`);
         }
         break;
+      case 'playTrack': {
+        // a track from search: play it inside its album so "next" keeps going
+        const body = arg.albumUri ? { context_uri: arg.albumUri, offset: { uri: arg.uri } } : { uris: [arg.uri] };
+        await this.call('PUT', `/me/player/play${dev}`, body);
+        break;
+      }
       case 'next': await this.call('POST', '/me/player/next'); break;
       case 'prev':
         // Like the Spotify app: restart the song when past 3 s, otherwise go back.
@@ -377,15 +394,12 @@ class Spotify extends EventEmitter {
         await this.call(v ? 'PUT' : 'DELETE', `/me/library?uris=${encodeURIComponent(t.uri)}`);
         break;
       }
-      case 'playContext': {
-        const body = { context_uri: arg.uri };
-        const dev = arg.deviceId ? `?device_id=${encodeURIComponent(arg.deviceId)}` : '';
-        await this.call('PUT', `/me/player/play${dev}`, body);
+      case 'playContext':
+        await this.call('PUT', `/me/player/play${dev}`, { context_uri: arg.uri });
         break;
-      }
       case 'playLiked': {
         const me = await this.me();
-        await this.call('PUT', '/me/player/play', { context_uri: `spotify:user:${me}:collection` });
+        await this.call('PUT', `/me/player/play${dev}`, { context_uri: `spotify:user:${me}:collection` });
         break;
       }
       case 'transfer':
@@ -409,7 +423,9 @@ class Spotify extends EventEmitter {
 
   async playlists() {
     const r = await this.call('GET', '/me/playlists?limit=50');
+    const me = await this.me().catch(() => '');
     return (r && r.items ? r.items : []).filter(Boolean).map((p) => ({
+      editable: !!(p.collaborative || (p.owner && p.owner.id === me)),
       id: p.id,
       uri: p.uri,
       name: p.name,
@@ -417,6 +433,42 @@ class Spotify extends EventEmitter {
       cover: p.images && p.images.length ? p.images[p.images.length - 1].url : '',
       count: p.items ? p.items.total : p.tracks ? p.tracks.total : null,
     }));
+  }
+
+  /** Adds a track to one of the user's playlists. */
+  async addToPlaylist(playlistId, uri) {
+    const p = `/playlists/${encodeURIComponent(playlistId)}`;
+    try {
+      await this.call('POST', `${p}/items`, { uris: [uri] });
+    } catch (e) {
+      // apps created before the February 2026 change may still use the old path
+      if (e.status === 404) await this.call('POST', `${p}/tracks`, { uris: [uri] });
+      else throw e;
+    }
+  }
+
+  /** Search: up to 10 tracks, 5 albums and 5 playlists (the API caps limit at 10). */
+  async search(q) {
+    q = String(q || '').trim();
+    if (!q) return { tracks: [], albums: [], playlists: [] };
+    const enc = encodeURIComponent(q);
+    const [t, other] = await Promise.all([
+      this.call('GET', `/search?q=${enc}&type=track&limit=10`),
+      this.call('GET', `/search?q=${enc}&type=album,playlist&limit=5`).catch(() => null),
+    ]);
+    const img = (imgs) => (imgs && imgs.length ? imgs[imgs.length - 1].url : '');
+    return {
+      tracks: ((t && t.tracks && t.tracks.items) || []).filter(Boolean).map((x) => ({
+        uri: x.uri, name: x.name, artists: (x.artists || []).map((a) => a.name).join(', '),
+        albumUri: x.album ? x.album.uri : '', cover: img(x.album && x.album.images), duration: x.duration_ms,
+      })),
+      albums: ((other && other.albums && other.albums.items) || []).filter(Boolean).map((x) => ({
+        uri: x.uri, name: x.name, sub: (x.artists || []).map((a) => a.name).join(', '), cover: img(x.images),
+      })),
+      playlists: ((other && other.playlists && other.playlists.items) || []).filter(Boolean).map((x) => ({
+        uri: x.uri, name: x.name, sub: x.owner ? x.owner.display_name : '', cover: img(x.images),
+      })),
+    };
   }
 
   async devices() {
@@ -427,4 +479,4 @@ class Spotify extends EventEmitter {
   }
 }
 
-module.exports = { Spotify, SpotifyError, REDIRECT_URI, AUTH_PORT, SCOPES };
+module.exports = { Spotify, SpotifyError, REDIRECT_URI, AUTH_PORT, SCOPES, NEW_SCOPES };

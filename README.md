@@ -9,7 +9,7 @@ Windows için ekranın üstünde yaşayan küçük bir ada. Claude Code ve Claud
 | Sekme | |
 |---|---|
 | **Claude** | Claude Code / Claude Desktop oturumları canlı. İzin kartları (İzin ver · Reddet), seçenekli soruları adadan yanıtlama, iş bitince ses ve bildirim, 5 saatlik ve haftalık kullanım limiti, oturuma tıklayınca pencereye geçiş. |
-| **Müzik** | Spotify: kapak, ilerleme, oynat/duraklat, önceki/sonraki, karıştır, tekrar, beğen, ses, playlistler, cihazlar. Senkronize sözler (LRCLIB) ve isteğe bağlı Türkçe çeviri. Ada albüm kapağının rengini alır. |
+| **Müzik** | Spotify: kapak, ilerleme, oynat/duraklat, önceki/sonraki, karıştır, tekrar, beğen, çalan şarkıyı playliste ekle, şarkı / albüm / playlist arama, playlistler, cihazlar. Spotify kapalıysa açar, sonra çalar. Ses sürgüsü bilgisayarın genel sesidir. Senkronize sözler (LRCLIB) ve isteğe bağlı Türkçe çeviri. Ada albüm kapağının rengini alır. |
 | **Odak** | Pomodoro halkası, hazır süreler (25/5, 50/10, 15/3), odakta müzik çal / molada durdur, odakta bildirimleri sustur, bugünün ve son 7 günün özeti. |
 | **Ders** | Bugünkü dersler (şimdi / sıradaki), sınavlara kalan gün, dersten önce hatırlatma. |
 | **Araçlar** | Mühendislik hesap makinesi (`4.7k`, `100nF`, `1k\|\|2.2k`, `12V/220`, `db()`), hızlı not, pano geçmişi (sadece bellekte). |
@@ -24,7 +24,8 @@ Ayrıca: genel kısayollar, tam ekran uygulamalarda gizlenme, sol / orta / sağ 
 |---|---|
 | `Ctrl+Alt+Boşluk` | Müzik: oynat / duraklat |
 | `Ctrl+Alt+→` / `←` | Sonraki / önceki şarkı |
-| `Ctrl+Alt+↑` / `↓` | Ses ±10 |
+| `Ctrl+Alt+↑` / `↓` | Bilgisayar sesi ±5 |
+| `Ctrl+Alt+M` | Bilgisayar sesini kapat / aç |
 | `Ctrl+Alt+Y` / `N` | Claude: izin ver / reddet |
 | `Ctrl+Alt+P` | Pomodoro başlat / duraklat |
 | `Ctrl+Alt+A` | Adayı aç |
