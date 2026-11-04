@@ -1,6 +1,6 @@
 'use strict';
 /* global Ada, ada */
-// Focus tab: pomodoro timer with a ring, presets, today's numbers and a 7-day bar chart.
+// Focus tab: pomodoro timer or a stopwatch, today's numbers and a 7-day bar chart.
 (() => {
   const { S, I, esc, mmss } = Ada;
   const R = 52;
@@ -8,25 +8,55 @@
   const PHASE = { idle: 'Hazır', focus: 'Odak', short: 'Kısa mola', long: 'Uzun mola' };
   const PRESETS = [[25, 5, 15], [50, 10, 20], [15, 3, 10]];
 
+  // which of the two the tab shows; remembered per computer
+  let mode = 'pomo';
+  try { mode = localStorage.getItem('ada.focusMode') === 'watch' ? 'watch' : 'pomo'; } catch { /* storage blocked */ }
+  const setMode = (m) => { mode = m; try { localStorage.setItem('ada.focusMode', m); } catch { /* ignore */ } };
+
   const pomo = () => S.mods.pomodoro || null;
+  const sw = () => S.mods.stopwatch || null;
+  const pomoActive = () => { const p = pomo(); return !!(p && p.phase !== 'idle'); };
+  const watchActive = () => { const w = sw(); return !!(w && (w.running || w.elapsed > 0)); };
+
   function remaining() {
     const p = pomo();
     if (!p) return 0;
     if (p.phase === 'idle' || p.paused) return p.remaining;
     return Math.max(0, p.remaining - (Date.now() - p.at));
   }
+  function elapsed() {
+    const w = sw();
+    if (!w) return 0;
+    return w.running ? w.elapsed + (Date.now() - w.at) : w.elapsed;
+  }
+  // 0:07.3 under a minute, 12:34 under an hour, then 1:02:03
+  function swText(ms, tenths) {
+    const s = Math.floor(ms / 1000);
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    if (h) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+    const base = `${m}:${String(sec).padStart(2, '0')}`;
+    return tenths ? `${base}<small>.${Math.floor((ms % 1000) / 100)}</small>` : base;
+  }
 
-  function ringHtml(size, stroke) {
+  function ringHtml(size, stroke, kind) {
+    const isWatch = kind === 'watch';
     const p = pomo();
-
-    const tone = !p || p.phase === 'idle' ? 'idle' : p.phase === 'focus' ? 'focus' : 'break';
-    return `<svg data-morph="ring" class="ring ${tone} ${p && p.paused ? 'paused' : ''}" viewBox="0 0 120 120" width="${size}" height="${size}" aria-hidden="true">
+    const w = sw();
+    const tone = isWatch ? 'watch' : !p || p.phase === 'idle' ? 'idle' : p.phase === 'focus' ? 'focus' : 'break';
+    const paused = isWatch ? w && !w.running && w.elapsed > 0 : p && p.paused;
+    return `<svg data-morph="ring" class="ring ${tone} ${paused ? 'paused' : ''}" viewBox="0 0 120 120" width="${size}" height="${size}" aria-hidden="true">
       <circle class="track" cx="60" cy="60" r="${R}" stroke-width="${stroke}"/>
-      <circle class="prog" cx="60" cy="60" r="${R}" stroke-width="${stroke}" stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${C.toFixed(2)}" data-live="ring"/>
+      <circle class="prog" cx="60" cy="60" r="${R}" stroke-width="${stroke}" stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${C.toFixed(2)}" data-live="${isWatch ? 'swring' : 'ring'}"/>
     </svg>`;
   }
 
-  function leftHtml() {
+  function modeSwitch() {
+    const b = (id, label, dot) => `<button class="seg ${mode === id ? 'on' : ''}" data-act="f:mode" data-id="${id}">${label}${dot ? '<i class="seg-dot"></i>' : ''}</button>`;
+    return `<div class="segs mini mode-sw">${b('pomo', 'Pomodoro', pomoActive() && mode !== 'pomo')}${b('watch', 'Kronometre', watchActive() && mode !== 'watch')}</div>`;
+  }
+
+  // ------------------------------------------------------------ pomodoro view
+  function pomoHtml() {
     const p = pomo();
     if (!p) return '';
     const st = p.settings;
@@ -43,6 +73,7 @@
           </div>
         </div>
         <div class="pomo-side">
+          ${modeSwitch()}
           <div class="dots" title="Uzun molaya kadar">${dots}</div>
           <div class="pomo-ctrl">
             <button class="ic big" data-act="p:toggle" title="${running ? 'Duraklat' : 'Başlat'} · Ctrl+Alt+P">${running ? I.pause : I.play}</button>
@@ -61,7 +92,47 @@
       </div>`;
   }
 
-  function rightHtml() {
+  // ------------------------------------------------------------ stopwatch view
+  function watchHtml() {
+    const w = sw() || { running: false, elapsed: 0, laps: [] };
+    const started = w.running || w.elapsed > 0;
+    return `
+      <div class="pomo">
+        <div class="ring-wrap">
+          ${ringHtml(132, 7, 'watch')}
+          <div class="ring-text">
+            <span class="r-time sw" data-live="swtime" data-morph="ptime" data-morph-text></span>
+            <span class="r-phase">${w.running ? 'Kronometre' : started ? 'Duraklatıldı' : 'Sıfırdan sayar'}</span>
+          </div>
+        </div>
+        <div class="pomo-side">
+          ${modeSwitch()}
+          <div class="pomo-ctrl">
+            <button class="ic big" data-act="w:toggle" title="${w.running ? 'Duraklat' : started ? 'Devam et' : 'Başlat'} · Ctrl+Alt+K">${w.running ? I.pause : I.play}</button>
+            <button class="chip lapbtn" data-act="w:lap" ${w.running ? '' : 'disabled'} title="Tur kaydet">Tur</button>
+            <button class="ic" data-act="w:reset" title="Sıfırla" ${started ? '' : 'disabled'}>${I.stop}</button>
+          </div>
+          <p class="sw-hint">${started ? 'Geçen süre bugünkü odak süresine eklenir.' : 'Başlat\'a bas, süre 0\'dan saymaya başlasın.'}</p>
+        </div>
+      </div>`;
+  }
+
+  function lapsHtml() {
+    const w = sw();
+    const laps = (w && w.laps) || [];
+    if (!laps.length) {
+      return `<div class="today"><h3>Turlar</h3><p class="hint-l">Kronometre çalışırken <b>Tur</b>'a bas; her turun süresi burada listelenir.</p></div>`;
+    }
+    const best = Math.min(...laps.map((l) => l.split));
+    const worst = Math.max(...laps.map((l) => l.split));
+    return `<div class="today"><h3>Turlar</h3><div class="laps">${laps.map((l) => `
+      <div class="lap ${laps.length > 1 && l.split === best ? 'best' : ''} ${laps.length > 1 && l.split === worst ? 'worst' : ''}">
+        <span class="lap-n">${l.n}. tur</span><span class="lap-split">${swText(l.split, true)}</span><span class="lap-total">${swText(l.total)}</span>
+      </div>`).join('')}</div></div>`;
+  }
+
+  // ------------------------------------------------------------ today
+  function statsHtml() {
     const s = S.mods.stats;
     if (!s) return '';
     const d = s.today;
@@ -84,20 +155,37 @@
       </div>`;
   }
 
+  // ------------------------------------------------------------ live updates
+  function setRing(el, frac, force) {
+    // a freshly drawn ring jumps to its position instead of animating from empty
+    const fresh = force || !el.dataset.seen;
+    if (fresh) el.style.transition = 'none';
+    el.style.strokeDashoffset = (C * (1 - frac)).toFixed(2);
+    if (fresh) { void el.getBoundingClientRect(); el.style.transition = ''; el.dataset.seen = '1'; }
+  }
+
   function tick(root, force) {
     const p = pomo();
-    if (!p) return;
-    const rem = remaining();
-    const total = p.total || 1;
-    const frac = p.phase === 'idle' ? 0 : 1 - rem / total;
-    root.querySelectorAll('[data-live="ring"]').forEach((el) => {
-      // a freshly drawn ring jumps to its position instead of animating from empty
-      const fresh = force || !el.dataset.seen;
-      if (fresh) el.style.transition = 'none';
-      el.style.strokeDashoffset = (C * (1 - frac)).toFixed(2);
-      if (fresh) { void el.getBoundingClientRect(); el.style.transition = ''; el.dataset.seen = '1'; }
-    });
-    root.querySelectorAll('[data-live="ptime"]').forEach((el) => { el.textContent = mmss(rem); });
+    if (p) {
+      const rem = remaining();
+      const frac = p.phase === 'idle' ? 0 : 1 - rem / (p.total || 1);
+      root.querySelectorAll('[data-live="ring"]').forEach((el) => setRing(el, frac, force));
+      root.querySelectorAll('[data-live="ptime"]').forEach((el) => { el.textContent = mmss(rem); });
+    }
+    const w = sw();
+    if (w) {
+      const ms = elapsed();
+      // the ring goes round once a minute, like a stopwatch's second hand
+      const frac = (ms % 60000) / 60000;
+      root.querySelectorAll('[data-live="swring"]').forEach((el) => {
+        // when the minute wraps, jump back to empty instead of sweeping backwards
+        const wrapped = el.dataset.last && frac < Number(el.dataset.last);
+        setRing(el, frac, force || wrapped);
+        el.dataset.last = frac;
+      });
+      root.querySelectorAll('[data-live="swtime"]').forEach((el) => { el.innerHTML = swText(ms, true); });
+      root.querySelectorAll('[data-live="swpill"]').forEach((el) => { el.textContent = swText(ms); });
+    }
   }
 
   Ada.tab({
@@ -107,33 +195,62 @@
     pillRank: 1,
     badge() {
       const p = pomo();
-      return p && p.phase !== 'idle' ? `<span class="dotb ${p.phase === 'focus' ? 'focus' : 'break'}"></span>` : '';
+      if (p && p.phase !== 'idle') return `<span class="dotb ${p.phase === 'focus' ? 'focus' : 'break'}"></span>`;
+      const w = sw();
+      return w && w.running ? '<span class="dotb watch"></span>' : '';
     },
-    status() { const p = pomo(); return p && p.phase === 'focus' ? 'focus' : p && p.phase !== 'idle' ? 'break' : 'idle'; },
-    wantsFocus() { const p = pomo(); return p && p.phase !== 'idle'; },
+    status() {
+      const p = pomo();
+      if (p && p.phase === 'focus') return 'focus';
+      if (p && p.phase !== 'idle') return 'break';
+      return sw() && sw().running ? 'focus' : 'idle';
+    },
+    wantsFocus() { return pomoActive() || !!(sw() && sw().running); },
+    onEnter() {
+      // open on whichever is running
+      if (pomoActive() && !(sw() && sw().running)) setMode('pomo');
+      else if (sw() && sw().running && !pomoActive()) setMode('watch');
+    },
     pill() {
       const p = pomo();
-      if (!p || p.phase === 'idle') return null;
       const t = S.music && S.music.player && S.music.player.isPlaying ? S.music.player.track : null;
-      return {
-        status: p.phase === 'focus' ? 'focus' : 'break',
-        html: `<div class="pill pomo-pill">
-          ${ringHtml(22, 14)}
-          <span class="proj">${PHASE[p.phase]}</span>
-          <span class="act" data-live="ptime" data-morph="ptime" data-morph-text></span>
-          ${p.paused ? '<span class="act">· duraklatıldı</span>' : ''}
-          ${t ? `<span class="eq on" aria-hidden="true"><i></i><i></i><i></i></span><span class="act tname">${esc(t.name)}</span>` : ''}
-        </div>`,
-      };
+      const song = t ? `<span class="eq on" aria-hidden="true"><i></i><i></i><i></i></span><span class="act tname">${esc(t.name)}</span>` : '';
+      if (p && p.phase !== 'idle') {
+        return {
+          status: p.phase === 'focus' ? 'focus' : 'break',
+          html: `<div class="pill pomo-pill">
+            ${ringHtml(22, 14)}
+            <span class="proj">${PHASE[p.phase]}</span>
+            <span class="act" data-live="ptime" data-morph="ptime" data-morph-text></span>
+            ${p.paused ? '<span class="act">· duraklatıldı</span>' : ''}
+            ${song}
+          </div>`,
+        };
+      }
+      const w = sw();
+      if (w && w.running) {
+        return {
+          status: 'focus',
+          html: `<div class="pill pomo-pill">
+            ${ringHtml(22, 14, 'watch')}
+            <span class="proj">Kronometre</span>
+            <span class="act" data-live="swpill" data-morph="ptime" data-morph-text></span>
+            ${song}
+          </div>`,
+        };
+      }
+      return null;
     },
     body() {
       return `<div class="f-grid">
-        <div class="f-left" data-region="f-left">${leftHtml()}</div>
-        <div class="f-right" data-region="f-right">${rightHtml()}</div>
+        <div class="f-left" data-region="f-left">${mode === 'watch' ? watchHtml() : pomoHtml()}</div>
+        <div class="f-right" data-region="f-right">${mode === 'watch' ? lapsHtml() : statsHtml()}</div>
       </div>`;
     },
     tick,
     onAct(a, id) {
+      if (a === 'f:mode') { setMode(id); Ada.render(); return true; }
+      if (a.startsWith('w:')) { ada.call('stopwatch', a.slice(2)); return true; }
       if (!a.startsWith('p:')) return false;
       const fn = a.slice(2);
       if (fn === 'preset') {

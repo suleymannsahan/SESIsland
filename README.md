@@ -58,6 +58,10 @@ Pomodoro halkası, hazır süreler (25/5, 50/10, 15/3), odak başlayınca müzik
 
 <p align="center"><img src="docs/focus.png" width="820" alt="Pomodoro ve günlük özet"></p>
 
+**Kronometre:** Odak sekmesinde Pomodoro yerine Kronometre'ye geçersen süre sıfırdan saymaya başlar. Tur alabilir, duraklatıp sıfırlayabilirsin; geçen süre bugünkü odak süresine eklenir. Ada gizliyken de saymaya devam eder.
+
+<p align="center"><img src="docs/stopwatch.png" width="820" alt="Kronometre ve turlar"></p>
+
 ## 📚 Ders
 
 Bugünkü dersler (şimdi / sıradaki), sınavlara kalan gün ve dersten birkaç dakika önce hatırlatma.
@@ -94,6 +98,7 @@ ESP32 / Arduino çıktısını adada oku. `PASS` geçen satırlar yeşil, `FAIL`
 | `Ctrl` `Alt` `M` | Sesi kapat / aç |
 | `Ctrl` `Alt` `Y` / `N` | Claude: izin ver / reddet |
 | `Ctrl` `Alt` `P` | Pomodoro başlat / duraklat |
+| `Ctrl` `Alt` `K` | Kronometre başlat / duraklat |
 | `Ctrl` `Alt` `A` | Adayı aç |
 
 Fare adanın üstündeyken: **tekerlek** sesi değiştirir, **yana kaydırma** (ya da `Shift` + tekerlek) şarkı değiştirir.

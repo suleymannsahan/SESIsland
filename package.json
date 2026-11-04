@@ -1,7 +1,7 @@
 {
   "name": "ada",
   "productName": "Ada",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Claude Code ve Claude Desktop için Windows'ta küçük bir ada",
   "main": "src/main.js",
   "author": "Süleyman Emre Şahan",

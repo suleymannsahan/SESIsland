@@ -658,3 +658,22 @@ body.glass .tile, body.glass .segs { background: rgba(0, 0, 0, .14); }
 .rest .fener { transform: translateY(1px); }
 #island.mode-sleepy .fener { transform: scale(.75); }
 .pill .fener { margin-left: -4px; }
+
+/* =================================================================== stopwatch */
+.mode-sw { align-self: flex-start; margin-bottom: 2px; }
+.mode-sw .seg { position: relative; }
+.seg-dot { position: absolute; top: 4px; right: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--deniz); }
+.ring.watch .prog { stroke: var(--lila); transition: stroke-dashoffset .25s linear; }
+.ring.watch.paused .prog { stroke: var(--mist); }
+.r-time.sw small { font-size: 16px; color: var(--mist); font-weight: 600; }
+.lapbtn { height: 32px; padding: 0 16px; }
+.sw-hint { font-size: 12px; color: var(--mist); max-width: 230px; line-height: 1.4; }
+.laps { display: flex; flex-direction: column; max-height: 196px; overflow-y: auto; }
+.lap { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: baseline; padding: 6px 2px; border-bottom: 1px solid rgba(232, 238, 243, .05); font-variant-numeric: tabular-nums; }
+.lap-n { color: var(--mist); font-size: 12px; }
+.lap-split { font-weight: 600; }
+.lap-split small { color: var(--mist); font-size: 11px; }
+.lap-total { color: var(--mist); font-size: 12px; min-width: 44px; text-align: right; }
+.lap.best .lap-split { color: var(--yosun); }
+.lap.worst .lap-split { color: var(--mercan); }
+.dotb.watch { background: var(--lila); }

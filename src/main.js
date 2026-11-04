@@ -12,6 +12,7 @@ const { makeTrayIcon } = require('./icon');
 const { Spotify } = require('./spotify');
 const { Lyrics } = require('./lyrics');
 const { Pomodoro } = require('./pomodoro');
+const { Stopwatch } = require('./stopwatch');
 const { Stats } = require('./stats');
 const { SystemMonitor } = require('./system');
 const { ClipHistory } = require('./clip');
@@ -36,6 +37,7 @@ let spotify = null;
 let lyrics = null;
 let settingsWin = null;
 let pomo = null;
+let watch = null;
 let stats = null;
 let sys = null;
 let clip = null;
@@ -195,6 +197,8 @@ function refreshTrayMenu() {
       click: () => pomo.toggle(),
     },
     ...(pomo && pomo.phase !== 'idle' ? [{ label: 'Pomodoro: bitir', click: () => pomo.stop() }] : []),
+    { label: watch && watch.running ? 'Kronometre: duraklat' : watch && watch.elapsed() > 0 ? 'Kronometre: devam et' : 'Kronometre başlat', click: () => watch.toggle() },
+    ...(watch && watch.elapsed() > 0 ? [{ label: 'Kronometre: sıfırla', click: () => watch.reset() }] : []),
     { type: 'separator' },
     {
       label: installed ? 'Claude Code hook\'larını kaldır' : 'Claude Code hook\'larını kur',
@@ -459,6 +463,12 @@ async function startOnDevice(name, arg) {
 
 // ================================================================= pomodoro
 function setupPomodoro() {
+  watch = new Stopwatch();
+  watch.on('state', (s) => { mod('stopwatch', s); refreshTrayMenu(); });
+  watch.on('focus', (mins) => stats.add('focusMin', mins));
+  // a long-running stopwatch still adds its minutes to today's focus time
+  setInterval(() => { if (watch.running) watch.flushFocus(); }, 60 * 1000);
+
   pomo = new Pomodoro(app.getPath('userData'));
   pomo.on('state', (s) => { mod('pomodoro', s); refreshTrayMenu(); });
   pomo.on('phase', async ({ phase }) => {
@@ -584,6 +594,7 @@ const SHORTCUTS = [
   ['CommandOrControl+Alt+Y', 'Claude: izin ver', () => decideFirst('allow') || send('island:toast', { kind: 'info', text: 'Bekleyen izin yok' })],
   ['CommandOrControl+Alt+N', 'Claude: reddet', () => decideFirst('deny') || send('island:toast', { kind: 'info', text: 'Bekleyen izin yok' })],
   ['CommandOrControl+Alt+P', 'Pomodoro: başlat / duraklat', () => pomo.toggle()],
+  ['CommandOrControl+Alt+K', 'Kronometre: başlat / duraklat', () => watch.toggle()],
   ['CommandOrControl+Alt+A', 'Adayı aç', () => { if (hidden) toggleHidden(); send('island:expand', true); }],
 ];
 let shortcutReport = [];
@@ -721,6 +732,7 @@ ipcMain.handle('island:init', () => ({
   music: spotify ? spotify.publicState() : null,
   mods: {
     pomodoro: pomo ? pomo.snapshot() : null,
+    stopwatch: watch ? watch.snapshot() : null,
     stats: stats ? stats.summary() : null,
     clip: clip ? clip.snapshot() : null,
     serial: serial ? serial.snapshot() : null,
@@ -770,6 +782,11 @@ const CALLS = {
     stop: () => pomo.stop(),
     skip: () => pomo.skip(),
     settings: (patch) => pomo.setSettings(patch),
+  },
+  stopwatch: {
+    toggle: () => watch.toggle(),
+    lap: () => watch.lap(),
+    reset: () => watch.reset(),
   },
   stats: { get: () => stats.summary() },
   system: { fast: (on) => sys.setFast(on) },
@@ -984,5 +1001,6 @@ app.on('before-quit', () => {
   if (clip) clip.stop();
   if (usage) usage.stop();
   if (updater) updater.stop();
+  if (watch) watch.flushFocus();
   for (const s of [schedule, notes, stats && stats.store, pomo && pomo.store]) if (s) s.saveNow();
 });
