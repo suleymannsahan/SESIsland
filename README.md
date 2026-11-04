@@ -32,7 +32,7 @@ Ayrıca: genel kısayollar, tam ekran uygulamalarda gizlenme, sol / orta / sağ 
 
 ## Kurulum
 
-[Releases](../../releases) sayfasından `Ada-Setup-x.y.z.exe`'yi indir ve çalıştır. Kurulum dosyası imzalı olmadığı için Windows SmartScreen uyarı verebilir: **Ek bilgi → Yine de çalıştır**.
+[Releases](https://github.com/suleymannsahan/SESIsland/releases) sayfasından `Ada-Setup-x.y.z.exe`'yi indir ve çalıştır. Kurulum dosyası imzalı olmadığı için Windows SmartScreen uyarı verebilir: **Ek bilgi → Yine de çalıştır**.
 
 İlk açılışta Ada, Claude Code hook'larını `~/.claude/settings.json`'a ekler (eski dosya tarihli bir yedekle saklanır). Ardından Claude Code'da yeni bir oturum başlat.
 

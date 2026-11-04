@@ -23,7 +23,7 @@ const DEFAULTS = {
   summaryTime: '21:30',      // '' turns the daily summary off
   lastSummary: '',
   classReminder: 10,         // minutes before a class; 0 = off
-  updateRepo: '',            // owner/repo on GitHub for update checks
+  updateRepo: 'suleymannsahan/SESIsland', // owner/repo on GitHub for update checks
   patternsVersion: 3,
   // Learned from Claude Desktop's accessibility tree (ada-kayit.txt). English and Turkish variants.
   desktopPatterns: {
@@ -47,6 +47,7 @@ function load(dir) {
   file = path.join(dir, 'config.json');
   try {
     const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (!raw.updateRepo) delete raw.updateRepo; // older versions saved it empty
     // Patterns saved by an older version are dropped so new defaults take effect.
     const userPatterns = raw.patternsVersion === DEFAULTS.patternsVersion ? (raw.desktopPatterns || {}) : {};
     data = { ...DEFAULTS, ...raw, patternsVersion: DEFAULTS.patternsVersion, desktopPatterns: { ...DEFAULTS.desktopPatterns, ...userPatterns } };

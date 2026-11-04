@@ -6,6 +6,8 @@
   "main": "src/main.js",
   "author": "Süleyman Emre Şahan",
   "license": "MIT",
+  "repository": "github:suleymannsahan/SESIsland",
+  "homepage": "https://github.com/suleymannsahan/SESIsland",
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win nsis zip --x64"
