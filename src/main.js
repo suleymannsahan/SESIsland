@@ -127,6 +127,14 @@ function placeWindow() {
   const b = bounds();
   win.setBounds({ x: b.x, y: b.y, width: b.width, height: b.height });
   win.webContents.setZoomFactor(b.scale);
+  if (winctl) winctl.restartWatch(adaPoint());
+}
+
+// A point inside the island's window in physical pixels (what Win32 MonitorFromPoint expects).
+function adaPoint() {
+  const b = bounds();
+  const p = { x: b.x + Math.round(b.width / 2), y: b.y + 10 };
+  try { return screen.dipToScreenPoint(p); } catch { return p; }
 }
 
 function send(channel, payload) {
@@ -217,6 +225,7 @@ function refreshTrayMenu() {
     {
       label: 'Sorun giderme',
       submenu: [
+        { label: 'Tanı raporu oluştur (masaüstüne)', click: () => writeDiagnostics().catch((e) => send('island:toast', { kind: 'error', text: 'Rapor yazılamadı: ' + e.message })) },
         { label: 'Test bildirimi', click: () => server && server.demo() },
         {
           label: 'Desktop tanılama dosyası oluştur',
@@ -512,8 +521,8 @@ function setupModules() {
   sysVol.start();
 
   winctl = new WinCtl(scriptsDir());
-  winctl.on('fullscreen', (fs_) => { fullscreenHidden = fs_; applyVisibility(); });
-  if (config.get().hideFullscreen) winctl.startWatch();
+  winctl.on('fullscreen', (fs_) => { fullscreenHidden = fs_; diag('fullscreen', fs_); applyVisibility(); });
+  if (config.get().hideFullscreen) winctl.startWatch(adaPoint());
 
   // once a minute: class reminders and the daily summary
   const minute = () => {
@@ -601,6 +610,7 @@ let islandRect = null;           // CSS px inside the window, already scaled to 
 let pointerInside = false;
 let holdPointer = false;         // dragging a slider or typing: keep the input
 let pointerTimer = null;
+let typingInIsland = false;      // an input in the island has keyboard focus
 
 ipcMain.on('island:rect', (_e, r) => {
   if (!r || !win || win.isDestroyed()) return;
@@ -615,7 +625,50 @@ function setPointer(inside) {
   if (inside === pointerInside) return;
   pointerInside = inside;
   win.setIgnoreMouseEvents(!inside, { forward: true });
+  // Windows: a window that can never take focus may stop getting clicks after the first one.
+  // While the cursor is over the island it may take focus; it gives it back when the cursor leaves.
+  if (process.platform === 'win32' && !typingInIsland) {
+    win.setFocusable(inside);
+    if (!inside && win.isFocused()) win.blur();
+  }
+  diag('pointer', inside);
   send('island:pointer', inside);
+}
+
+// ---- diagnostics: a small ring buffer of what happened, written out on request
+const diagLog = [];
+function diag(kind, data) {
+  diagLog.push({ t: new Date().toISOString().slice(11, 23), kind, data });
+  if (diagLog.length > 400) diagLog.shift();
+}
+ipcMain.on('island:diag', (_e, kind, data) => diag('r:' + kind, data));
+
+async function writeDiagnostics() {
+  const out = path.join(app.getPath('desktop'), 'ada-tani.txt');
+  let rendererState = null;
+  try { rendererState = await win.webContents.executeJavaScript('window.Ada && Ada.debugState ? Ada.debugState() : null'); } catch { /* ignore */ }
+  const report = {
+    version: app.getVersion(),
+    when: new Date().toString(),
+    windowBounds: win.getBounds(),
+    visible: win.isVisible(),
+    focusable: win.isFocusable(),
+    focused: win.isFocused(),
+    zoom: win.webContents.getZoomFactor(),
+    islandRect,
+    cursor: screen.getCursorScreenPoint(),
+    pointerInside,
+    holdPointer,
+    typingInIsland,
+    hidden,
+    fullscreenHidden,
+    displays: screen.getAllDisplays().map((d) => ({ id: d.id, bounds: d.bounds, workArea: d.workArea, scale: d.scaleFactor })),
+    config: { position: config.get().position, display: config.get().display, scale: config.get().scale, hideFullscreen: config.get().hideFullscreen },
+    renderer: rendererState,
+    events: diagLog,
+  };
+  fs.writeFileSync(out, JSON.stringify(report, null, 2));
+  shell.showItemInFolder(out);
 }
 
 function startPointerWatch() {
@@ -635,8 +688,10 @@ function startPointerWatch() {
 // Typing in the island (notes, calculator, serial) needs a focusable window for a moment.
 ipcMain.on('island:focusable', (_e, on) => {
   if (!win || win.isDestroyed()) return;
-  win.setFocusable(!!on);
+  typingInIsland = !!on;
+  win.setFocusable(!!on || (process.platform === 'win32' && pointerInside));
   if (on) win.focus();
+  diag('typing', !!on);
 });
 
 ipcMain.on('island:decide', (_e, { id, decision }) => {
@@ -821,7 +876,7 @@ ipcMain.handle('settings:set', (_e, patch) => {
   }
   config.set(clean);
   if ('desktopWatcher' in clean) clean.desktopWatcher ? startWatcher() : stopWatcher();
-  if ('hideFullscreen' in clean) clean.hideFullscreen ? winctl.startWatch() : winctl.stopWatch();
+  if ('hideFullscreen' in clean) clean.hideFullscreen ? winctl.startWatch(adaPoint()) : winctl.stopWatch();
   if ('shortcuts' in clean) registerShortcuts();
   if ('clipboard' in clean) clip.setEnabled(clean.clipboard);
   if ('position' in clean || 'display' in clean || 'scale' in clean) placeWindow();

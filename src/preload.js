@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('ada', {
   mouse: () => {},
   rect: (r) => ipcRenderer.send('island:rect', r),
   hold: (on) => ipcRenderer.send('island:hold', on),
+  diag: (kind, data) => ipcRenderer.send('island:diag', kind, data),
   decide: (id, decision) => ipcRenderer.send('island:decide', { id, decision }),
   dismiss: (sessionId) => ipcRenderer.send('island:dismiss', sessionId),
   answer: (askId, answers) => ipcRenderer.send('island:answer', { askId, answers }),

@@ -470,6 +470,7 @@
   // click means a re-draw between press and release could swallow it.
   let pressTimer = null;
   island.addEventListener('pointerdown', (e) => {
+    ada.diag('down', `${e.button} ${Math.round(e.clientX)},${Math.round(e.clientY)} ${e.target.tagName}${e.target.closest('[data-act]') ? ' act' : ''}`);
     if (e.button !== 0) return;
     pressed = true;
     ada.hold(true);
@@ -496,7 +497,15 @@
     if (el && !el.disabled) handleAct(el, e);
   });
 
+  Ada.debugState = () => ({
+    hovered: ui.hovered, tab: ui.tab, pointer: ui.pointer, drag: ui.drag, holdOpen: ui.holdOpen, pressed,
+    mode: last.mode, key: last.key, rect: island.getBoundingClientRect().toJSON(),
+    activeElement: document.activeElement ? document.activeElement.tagName + '.' + document.activeElement.className : null,
+    hasFocus: document.hasFocus(),
+  });
+
   function handleAct(el, e) {
+    ada.diag('act', el.dataset.act + (el.dataset.id ? ':' + el.dataset.id : ''));
     activity();
     const { act, id } = el.dataset;
     if (act === 'tab') {

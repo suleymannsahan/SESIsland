@@ -15,10 +15,13 @@ class WinCtl extends EventEmitter {
     this.stopped = true;
   }
 
-  startWatch() {
+  /** point: a physical-pixel point inside Ada's window, so only that monitor counts. */
+  startWatch(point) {
     if (process.platform !== 'win32' || this.proc) return;
     this.stopped = false;
-    this.proc = spawn('powershell.exe', [...PS, this.script, '-Watch', '-SelfPid', String(process.pid)], { windowsHide: true });
+    if (point) this.point = point;
+    const p = this.point || { x: 0, y: 0 };
+    this.proc = spawn('powershell.exe', [...PS, this.script, '-Watch', '-SelfPid', String(process.pid), '-AdaX', String(p.x), '-AdaY', String(p.y)], { windowsHide: true });
     let buf = '';
     this.proc.stdout.setEncoding('utf8');
     this.proc.stdout.on('data', (d) => {
@@ -40,6 +43,12 @@ class WinCtl extends EventEmitter {
       this.proc = null;
       if (!this.stopped) setTimeout(() => this.startWatch(), 5000);
     });
+  }
+
+  restartWatch(point) {
+    const wasOn = !this.stopped;
+    this.stopWatch();
+    if (wasOn) this.startWatch(point);
   }
 
   stopWatch() {
