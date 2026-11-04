@@ -169,6 +169,7 @@
         <div class="actions">
           ${needSend ? `<button class="btn-allow" data-act="sendAnswers" data-id="${esc(q.askId)}" ${ready ? '' : 'disabled'}>Gönder</button>` : ''}
           <span class="spacer"></span>
+          ${q.until ? `<span class="ask-left" data-region="askleft">${Math.max(0, Math.round((q.until - Date.now()) / 1000))} sn sonra terminale düşer</span>` : ''}
           <button class="btn-text" data-act="askTerminal" data-id="${esc(q.askId)}">Terminalde yanıtla</button>
         </div>
       </div>`,

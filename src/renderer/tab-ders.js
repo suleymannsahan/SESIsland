@@ -88,7 +88,7 @@
     id: 'ders',
     label: 'Ders',
     icon: I.book,
-    pillRank: 2,
+    pillRank: 0,
     badge() {
       const { now, next } = current();
       const soon = next && toMin(next.start) - nowMin() <= 15;

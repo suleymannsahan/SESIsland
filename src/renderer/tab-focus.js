@@ -84,7 +84,7 @@
       </div>`;
   }
 
-  function tick(root) {
+  function tick(root, force) {
     const p = pomo();
     if (!p) return;
     const rem = remaining();

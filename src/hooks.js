@@ -36,12 +36,12 @@ function cmd(port, maxTime) {
 }
 
 // [event name, { matcher?, timeout (s), query? }]
-// The second PreToolUse entry waits (up to 5 min) while the question is answered on the island.
+// The second PreToolUse entry waits (up to 1 min) while the question is answered on the island.
 const EVENTS = [
   ['SessionStart', { t: 5 }],
   ['UserPromptSubmit', { t: 5 }],
   ['PreToolUse', { matcher: '*', t: 5 }],
-  ['PreToolUse', { matcher: 'AskUserQuestion', t: 300, query: '?wait=ask' }],
+  ['PreToolUse', { matcher: 'AskUserQuestion', t: 75, query: '?wait=ask' }],
   ['PostToolUse', { matcher: '*', t: 5 }],
   ['PermissionRequest', { matcher: '*', t: 600 }],
   ['Notification', { t: 5 }],

@@ -8,6 +8,7 @@ const { describeTool, permissionDetail, lastAssistantText } = require('./describ
 
 const STALE_MS = 30 * 60 * 1000;
 const DONE_LINGER_MS = 9000;
+const ASK_TIMEOUT_MS = 60 * 1000;
 
 class HookServer extends EventEmitter {
   constructor(port) {
@@ -203,9 +204,11 @@ class HookServer extends EventEmitter {
     if (!questions.length) return this.reply(res);
     const askId = `a${++this.seq}`;
     this.asks = this.asks || new Map();
-    this.asks.set(askId, { res, sessionId: s.id, input: ev.tool_input });
+    // If nobody answers on the island within a minute, let the terminal ask as usual.
+    const timer = setTimeout(() => this.answerAsk(askId, null), ASK_TIMEOUT_MS);
+    this.asks.set(askId, { res, sessionId: s.id, input: ev.tool_input, timer });
     s.status = 'question';
-    s.question = { askId, text: questions[0].question, options: questions[0].options.map((o) => o.label), questions };
+    s.question = { askId, text: questions[0].question, options: questions[0].options.map((o) => o.label), questions, until: Date.now() + ASK_TIMEOUT_MS };
     res.on('close', () => {
       if (this.asks.has(askId)) {
         this.asks.delete(askId);
@@ -222,6 +225,7 @@ class HookServer extends EventEmitter {
     const a = this.asks && this.asks.get(askId);
     if (!a) return false;
     this.asks.delete(askId);
+    clearTimeout(a.timer);
     const s = this.sessions.get(a.sessionId);
     if (!answers) {
       this.reply(a.res, {});
