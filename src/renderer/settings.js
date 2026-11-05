@@ -158,7 +158,7 @@
 
   // ------------------------------------------------------------ simple options
   const set = (patch) => ada.setSettings(patch);
-  ['sound', 'notifications', 'desktopWatcher', 'loginAtStart', 'hideFullscreen', 'sleepy', 'glass', 'albumColor', 'shortcuts', 'clipboard', 'translateLyrics'].forEach((k) => {
+  ['sound', 'notifications', 'desktopWatcher', 'loginAtStart', 'hideFullscreen', 'sleepy', 'glass', 'albumColor', 'shortcuts', 'clipboard', 'translateLyrics', 'visualizer', 'privacyDots', 'deviceCards', 'media'].forEach((k) => {
     $('opt-' + k).addEventListener('change', async (e) => {
       await set({ [k]: e.target.checked });
       if (k === 'shortcuts') refreshShortcuts();
@@ -166,9 +166,36 @@
   });
   document.querySelectorAll('input[name="position"]').forEach((r) => r.addEventListener('change', (e) => set({ position: e.target.value })));
   $('opt-display').addEventListener('change', (e) => set({ display: Number(e.target.value) }));
-  $('opt-scale').addEventListener('input', (e) => { $('scale-v').textContent = `%${Math.round(e.target.value * 100)}`; });
+  function syncSize(v) {
+    $('scale-v').textContent = `%${Math.round(v * 100)}`;
+    document.querySelectorAll('input[name="size"]').forEach((r) => { r.checked = Math.abs(Number(r.value) - v) < 0.01; });
+  }
+  $('opt-scale').addEventListener('input', (e) => syncSize(Number(e.target.value)));
   $('opt-scale').addEventListener('change', (e) => set({ scale: Number(e.target.value) }));
+  document.querySelectorAll('input[name="size"]').forEach((r) => r.addEventListener('change', (e) => {
+    $('opt-scale').value = e.target.value;
+    syncSize(Number(e.target.value));
+    set({ scale: Number(e.target.value) });
+  }));
+  document.querySelectorAll('input[name="skin"]').forEach((r) => r.addEventListener('change', (e) => set({ skin: e.target.value })));
+  document.querySelectorAll('input[name="accent"]').forEach((r) => r.addEventListener('change', (e) => set({ accent: e.target.value })));
   $('opt-classReminder').addEventListener('change', (e) => set({ classReminder: Number(e.target.value) }));
+  $('opt-calendarReminder').addEventListener('change', (e) => set({ calendarReminder: Number(e.target.value) }));
+  $('opt-quickReply').addEventListener('change', (e) => set({ quickReply: Number(e.target.value) }));
+  async function saveCalendar() {
+    const v = $('opt-calendarUrl').value.trim();
+    if (v && !/^(https|webcal):\/\//i.test(v)) { msg($('cal-msg'), 'Adres https:// ile başlamalı.', 'err'); return; }
+    await set({ calendarUrl: v });
+    if (!v) { msg($('cal-msg'), 'Takvim bağlantısı kaldırıldı.'); calBadge(false); return; }
+    msg($('cal-msg'), 'Takvim okunuyor…');
+    const r = await ada.call('calendar', 'refresh');
+    const st = r.ok && r.result;
+    if (st && !st.error) { msg($('cal-msg'), `Bağlandı · önümüzdeki hafta ${st.events.length} etkinlik`, 'ok'); calBadge(true); }
+    else msg($('cal-msg'), (st && st.error) || r.error || 'Okunamadı', 'err');
+  }
+  function calBadge(on) { $('cal-badge').textContent = on ? 'Bağlı' : 'Bağlı değil'; $('cal-badge').classList.toggle('ok', on); }
+  $('cal-save').addEventListener('click', saveCalendar);
+  $('opt-calendarUrl').addEventListener('keydown', (e) => { if (e.key === 'Enter') saveCalendar(); });
   $('sum-on').addEventListener('change', (e) => {
     $('opt-summaryTime').disabled = !e.target.checked;
     set({ summaryTime: e.target.checked ? ($('opt-summaryTime').value || '21:30') : '' });
@@ -212,7 +239,11 @@
     schedule = JSON.parse(JSON.stringify(s.schedule || { classes: [], exams: [] }));
     renderClasses();
     renderExams();
-    ['sound', 'notifications', 'desktopWatcher', 'hideFullscreen', 'sleepy', 'glass', 'albumColor', 'shortcuts', 'clipboard', 'translateLyrics'].forEach((k) => { $('opt-' + k).checked = !!c[k]; });
+    ['sound', 'notifications', 'desktopWatcher', 'hideFullscreen', 'sleepy', 'glass', 'albumColor', 'shortcuts', 'clipboard', 'translateLyrics', 'visualizer', 'privacyDots', 'deviceCards', 'media'].forEach((k) => { $('opt-' + k).checked = c[k] !== false && !!(c[k] ?? true); });
+    document.querySelectorAll('input[name="skin"]').forEach((r) => { r.checked = r.value === (c.skin || 'slate'); });
+    document.querySelectorAll('input[name="accent"]').forEach((r) => { r.checked = r.value === (c.accent || 'deniz'); });
+    if (c.systemAccent) document.querySelector('.sw-windows').style.background = '#' + c.systemAccent.slice(0, 6);
+    syncSize(c.scale || 1);
     $('opt-loginAtStart').checked = !!s.loginAtStart;
     document.querySelectorAll('input[name="position"]').forEach((r) => { r.checked = r.value === (c.position || 'center'); });
     const ds = $('opt-display');
@@ -221,6 +252,10 @@
     $('opt-scale').value = c.scale || 1;
     $('scale-v').textContent = `%${Math.round((c.scale || 1) * 100)}`;
     $('opt-classReminder').value = String(c.classReminder ?? 10);
+    $('opt-calendarReminder').value = String(c.calendarReminder ?? 10);
+    $('opt-quickReply').value = String([0, 8, 15, 30].includes(Number(c.quickReply)) ? Number(c.quickReply) : 15);
+    $('opt-calendarUrl').value = c.calendarUrl || '';
+    calBadge(!!c.calendarUrl);
     $('sum-on').checked = !!c.summaryTime;
     $('opt-summaryTime').value = c.summaryTime || '21:30';
     $('opt-summaryTime').disabled = !c.summaryTime;

@@ -6,7 +6,7 @@ const { EventEmitter } = require('events');
 
 const PS = ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File'];
 const MAX_LINES = 300;
-const MAX_POINTS = 240;
+const MAX_POINTS = 600;
 
 /** Pulls up to 4 numbers out of a line: "t=23.5 h:41" -> [{k:'t',v:23.5},{k:'h',v:41}] */
 function parseNumbers(line) {
@@ -107,6 +107,21 @@ class SerialMonitor extends EventEmitter {
     this.proc.stdin.write(String(text).replace(/[\r\n]+/g, ' ') + '\n');
     this.addLine(String(text), 'tx');
     return true;
+  }
+
+  /** The plotted numbers as CSV (one row per sample, one column per series). */
+  csv() {
+    const keys = Object.keys(this.series);
+    const n = Math.max(0, ...keys.map((k) => this.series[k].length));
+    const rows = [['n', ...keys].join(',')];
+    for (let i = 0; i < n; i++) {
+      rows.push([i + 1, ...keys.map((k) => {
+        const a = this.series[k];
+        const v = a[a.length - n + i];
+        return v == null ? '' : v;
+      })].join(','));
+    }
+    return rows.join('\r\n') + '\r\n';
   }
 
   clear() {

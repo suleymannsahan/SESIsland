@@ -45,7 +45,8 @@ const EVENTS = [
   ['PostToolUse', { matcher: '*', t: 5 }],
   ['PermissionRequest', { matcher: '*', t: 600 }],
   ['Notification', { t: 5 }],
-  ['Stop', { t: 5 }],
+  // Stop waits a few seconds so a reply typed on the island can send Claude back to work.
+  ['Stop', { t: 75, query: '?wait=reply' }],
   ['SubagentStop', { t: 5 }],
   ['SessionEnd', { t: 5 }],
 ];

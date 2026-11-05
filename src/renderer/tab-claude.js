@@ -52,7 +52,9 @@
           <span class="glyph" data-s="${esc(s.status)}" ${s === lead ? 'data-morph="glyph"' : ''}></span>
           <span class="proj"><span ${s === lead ? 'data-morph="proj" data-morph-text' : ''}>${esc(s.project)}</span><span class="src">${sourceName(s)}</span></span>
           <span class="time">${ago(s.updatedAt)}</span>
-          <span class="act">${esc(s.status === 'done' && s.lastMessage ? s.lastMessage : s.activity)}</span>
+          ${(s.status === 'done' || s.status === 'idle') && s.lastMessage
+            ? `<span class="act msg2" title="${esc(s.lastMessage)}">${esc(s.lastMessage)}</span>`
+            : `<span class="act">${esc(s.activity)}${s.status === 'working' && s.prompt ? `<em> · ${esc(s.prompt)}</em>` : ''}</span>`}
         </button>`).join('');
       return `<div class="c-wrap">
         <div data-region="usage">${usageHtml()}</div>

@@ -214,7 +214,7 @@
     pill() {
       const p = pomo();
       const t = S.music && S.music.player && S.music.player.isPlaying ? S.music.player.track : null;
-      const song = t ? `<span class="eq on" aria-hidden="true"><i></i><i></i><i></i></span><span class="act tname">${esc(t.name)}</span>` : '';
+      const song = t ? `<span class="eq on" data-viz aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="act tname">${esc(t.name)}</span>` : '';
       if (p && p.phase !== 'idle') {
         return {
           status: p.phase === 'focus' ? 'focus' : 'break',

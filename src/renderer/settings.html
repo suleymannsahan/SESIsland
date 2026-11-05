@@ -11,6 +11,8 @@
     <a href="#spotify">Spotify</a>
     <a href="#pomodoro">Pomodoro</a>
     <a href="#ders">Ders programı</a>
+    <a href="#takvim">Takvim</a>
+    <a href="#claude">Claude</a>
     <a href="#gorunum">Görünüm</a>
     <a href="#kisayol">Kısayollar</a>
     <a href="#genel">Genel</a>
@@ -105,6 +107,39 @@
       </div>
     </section>
 
+    <!-- ================================================= Takvim -->
+    <section id="takvim" aria-labelledby="ta-h">
+      <div class="sec-head"><h2 id="ta-h">Takvim</h2><span id="cal-badge" class="badge"></span></div>
+      <p class="fine">Google Takvim'ini (ya da Outlook / Apple takvimini) bağla; bugünkü etkinlikler Ders sekmesinde derslerle birlikte görünür, başlamadan önce ada haber verir. Toplantı linki varsa tek tıkla katılırsın.</p>
+      <ol class="steps">
+        <li><span>Bilgisayarda Google Takvim'i aç, sol taraftaki takviminin yanındaki <b>⋮</b> → <b>Ayarlar ve paylaşım</b>'a gir.</span>
+          <button class="link" data-open="https://calendar.google.com/calendar/r/settings">Google Takvim ayarlarını aç</button></li>
+        <li><span>Aşağıdaki <b>Takvimi entegre et</b> bölümünde <b>iCal biçimindeki gizli adres</b>i kopyala ve buraya yapıştır.</span></li>
+      </ol>
+      <div class="row">
+        <input id="opt-calendarUrl" type="text" spellcheck="false" autocomplete="off" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics">
+        <button id="cal-save" class="ghost">Kaydet</button>
+      </div>
+      <p id="cal-msg" class="msg" role="status"></p>
+      <label class="inline">Etkinlikten önce hatırlat
+        <select id="opt-calendarReminder">
+          <option value="0">kapalı</option><option value="5">5 dk</option><option value="10">10 dk</option><option value="15">15 dk</option><option value="30">30 dk</option>
+        </select>
+      </label>
+      <p class="fine">Bu adres gizlidir; Ada onu sadece bu bilgisayarda saklar ve takvimi doğrudan Google'dan okur.</p>
+    </section>
+
+    <!-- ================================================= Claude -->
+    <section id="claude" aria-labelledby="cl-h">
+      <h2 id="cl-h">Claude</h2>
+      <label class="inline">Claude Code bitince adadan yanıt bekleme süresi
+        <select id="opt-quickReply">
+          <option value="0">kapalı</option><option value="8">8 sn</option><option value="15">15 sn</option><option value="30">30 sn</option>
+        </select>
+      </label>
+      <p class="fine">Claude Code bir işi bitirince adadaki kartta <b>Devam et</b>, <b>Test et</b> gibi düğmeler ve bir yazı kutusu çıkar; yazdığın şey Claude'a iletilir ve çalışmaya devam eder. Bu süre boyunca terminal birkaç saniye bekler; yazmaya başlarsan süre uzar. Kapalıyken terminal hiç beklemez.</p>
+    </section>
+
     <!-- ================================================= Görünüm -->
     <section id="gorunum" aria-labelledby="go-h">
       <h2 id="go-h">Görünüm</h2>
@@ -115,12 +150,38 @@
       </div>
       <label for="opt-display" class="sub-l">Ekran</label>
       <select id="opt-display"></select>
-      <label for="opt-scale" class="sub-l">Boyut <span id="scale-v"></span></label>
-      <input type="range" id="opt-scale" min="0.8" max="1.3" step="0.05">
+      <span class="sub-l">Tema</span>
+      <div class="seg" role="radiogroup" aria-label="Tema">
+        <label><input type="radio" name="skin" value="slate"><span>Gece mavisi</span></label>
+        <label><input type="radio" name="skin" value="black"><span>Siyah</span></label>
+      </div>
+      <span class="sub-l">Vurgu rengi</span>
+      <div class="swatches" role="radiogroup" aria-label="Vurgu rengi">
+        <label title="Deniz"><input type="radio" name="accent" value="deniz"><i class="sw-deniz"></i></label>
+        <label title="Gök"><input type="radio" name="accent" value="gok"><i class="sw-gok"></i></label>
+        <label title="Lila"><input type="radio" name="accent" value="lila"><i class="sw-lila"></i></label>
+        <label title="Pembe"><input type="radio" name="accent" value="pembe"><i class="sw-pembe"></i></label>
+        <label title="Mercan"><input type="radio" name="accent" value="mercan"><i class="sw-mercan"></i></label>
+        <label title="Fener"><input type="radio" name="accent" value="fener"><i class="sw-fener"></i></label>
+        <label title="Yosun"><input type="radio" name="accent" value="yosun"><i class="sw-yosun"></i></label>
+        <label title="Windows'un vurgu rengi"><input type="radio" name="accent" value="windows"><i class="sw-windows">W</i></label>
+      </div>
+      <span class="sub-l">Boyut <span id="scale-v"></span></span>
+      <div class="row-inline">
+        <div class="seg" role="radiogroup" aria-label="Hazır boyutlar">
+          <label><input type="radio" name="size" value="0.85"><span>Kompakt</span></label>
+          <label><input type="radio" name="size" value="1"><span>Normal</span></label>
+          <label><input type="radio" name="size" value="1.15"><span>Büyük</span></label>
+        </div>
+        <input type="range" id="opt-scale" min="0.8" max="1.3" step="0.05" aria-label="Boyut">
+      </div>
       <label class="toggle"><input type="checkbox" id="opt-hideFullscreen"><span>Tam ekran uygulamalarda gizlen <em>(oyun, film, sunum · izin istekleri yine görünür)</em></span></label>
       <label class="toggle"><input type="checkbox" id="opt-glass"><span>Buzlu cam görünüm <em>(hafif saydam)</em></span></label>
       <label class="toggle"><input type="checkbox" id="opt-sleepy"><span>Bir süre bir şey olmayınca küçül</span></label>
       <label class="toggle"><input type="checkbox" id="opt-albumColor"><span>Müzik çalarken albüm kapağının rengini al</span></label>
+      <label class="toggle"><input type="checkbox" id="opt-visualizer"><span>Canlı ses dalgası <em>(bilgisayardan çıkan sese göre oynar · hiçbir şey kaydedilmez)</em></span></label>
+      <label class="toggle"><input type="checkbox" id="opt-privacyDots"><span>Kamera / mikrofon kullanılırken adada nokta göster</span></label>
+      <label class="toggle"><input type="checkbox" id="opt-deviceCards"><span>Kulaklık bağlanınca, şarj takılınca ve pil azalınca haber ver</span></label>
     </section>
 
     <!-- ================================================= Kısayollar -->
@@ -137,6 +198,7 @@
       <label class="toggle"><input type="checkbox" id="opt-notifications"><span>Windows bildirimleri</span></label>
       <label class="toggle"><input type="checkbox" id="opt-desktopWatcher"><span>Claude Desktop sohbetini izle</span></label>
       <label class="toggle"><input type="checkbox" id="opt-loginAtStart"><span>Windows ile başlat</span></label>
+      <label class="toggle"><input type="checkbox" id="opt-media"><span>Diğer uygulamalarda çalanları göster <em>(YouTube, VLC, Medya Oynatıcı…)</em></span></label>
       <label class="toggle"><input type="checkbox" id="opt-clipboard"><span>Pano geçmişi <em>(sadece bellekte, Ada kapanınca silinir)</em></span></label>
       <label class="toggle"><input type="checkbox" id="opt-translateLyrics"><span>Sözleri her zaman Türkçeye çevir <em>(MyMemory, günde ~5000 karakter ücretsiz)</em></span></label>
       <div class="row-inline">

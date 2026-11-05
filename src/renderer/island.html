@@ -9,17 +9,21 @@
 <body>
   <div id="stage">
     <div id="island" class="mode-rest" data-status="idle">
+      <div class="aura" aria-hidden="true"></div>
       <div id="inner"></div>
       <div class="tide" aria-hidden="true">
         <svg viewBox="0 0 200 6" preserveAspectRatio="none"><path d="M0 3 Q 12.5 0 25 3 T 50 3 T 75 3 T 100 3 T 125 3 T 150 3 T 175 3 T 200 3 T 225 3 T 250 3"/></svg>
       </div>
       <div class="beam" aria-hidden="true"></div>
     </div>
+    <div id="fx" aria-hidden="true"></div>
     <div id="hud" hidden></div>
     <div id="toast" hidden></div>
   </div>
   <script src="calc.js"></script>
+  <script src="electronics.js"></script>
   <script src="core.js"></script>
+  <script src="viz.js"></script>
   <script src="tab-claude.js"></script>
   <script src="tab-music.js"></script>
   <script src="tab-focus.js"></script>
@@ -27,5 +31,7 @@
   <script src="tab-tools.js"></script>
   <script src="tab-serial.js"></script>
   <script src="tab-system.js"></script>
+  <script src="tab-shelf.js"></script>
+  <script src="devices.js"></script>
 </body>
 </html>

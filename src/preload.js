@@ -1,5 +1,5 @@
 'use strict';
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 const LISTEN = [
   'island:state', 'island:event', 'island:toast', 'island:expand', 'island:config',
@@ -25,6 +25,10 @@ contextBridge.exposeInMainWorld('ada', {
   musicList: (kind) => ipcRenderer.invoke('music:list', kind),
   lyrics: () => ipcRenderer.invoke('music:lyrics'),
   translate: () => ipcRenderer.invoke('music:translate'),
+  vizSource: () => ipcRenderer.invoke('viz:source'),
+  // shelf
+  pathFor: (file) => { try { return webUtils.getPathForFile(file); } catch { return ''; } },
+  shelfDrag: (paths) => ipcRenderer.send('shelf:drag', paths),
   // settings
   openSettings: (section) => ipcRenderer.send('app:settings', section),
   settings: () => ipcRenderer.invoke('settings:get'),

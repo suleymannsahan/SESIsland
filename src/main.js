@@ -1,6 +1,7 @@
 'use strict';
 const {
   app, BrowserWindow, ipcMain, screen, Tray, Menu, Notification, nativeImage, shell, safeStorage, globalShortcut, clipboard,
+  desktopCapturer, session, systemPreferences,
 } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -22,6 +23,10 @@ const { ClaudeUsage } = require('./usage');
 const { Updater } = require('./updater');
 const { Store, today } = require('./store');
 const { SystemVolume } = require('./volume');
+const { MediaSessions } = require('./media');
+const { Shelf } = require('./shelf');
+const { PsLoop } = require('./psloop');
+const { Calendar } = require('./calendar');
 
 const PORT = 47821;
 const BASE_W = 880;
@@ -49,6 +54,11 @@ let schedule = null;
 let notes = null;
 let minuteTimer = null;
 let sysVol = null;
+let media = null;
+let shelf = null;
+let privacy = null;
+let calendar = null;
+let privacyState = { cam: [], mic: [] };
 let launching = null;     // { name, arg, startedAt } while Spotify is being opened
 
 if (!app.requestSingleInstanceLock()) {
@@ -102,6 +112,21 @@ function createWindow() {
       backgroundThrottling: false,
     },
   });
+  // Sound bars: the island asks for the system sound (loopback). The screen track it comes with
+  // is stopped right away; nothing is recorded or stored.
+  try {
+    session.defaultSession.setDisplayMediaRequestHandler((_req, cb) => {
+      let answered = false;
+      const answer = (v) => { if (answered) return; answered = true; try { cb(v); } catch { /* request already gone */ } };
+      desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 0, height: 0 } })
+        .then((src) => {
+          if (!src[0]) return answer({});
+          // system sound is only available on Windows; elsewhere the island keeps its CSS bars
+          answer(process.platform === 'win32' ? { video: src[0], audio: 'loopback' } : { video: src[0] });
+        })
+        .catch(() => answer({}));
+    });
+  } catch { /* older Electron */ }
   win.setAlwaysOnTop(true, 'screen-saver');
   win.setVisibleOnAllWorkspaces(true);
   win.setIgnoreMouseEvents(true, { forward: true });
@@ -137,6 +162,13 @@ function adaPoint() {
   const b = bounds();
   const p = { x: b.x + Math.round(b.width / 2), y: b.y + 10 };
   try { return screen.dipToScreenPoint(p); } catch { return p; }
+}
+
+// What the island sees of the settings (plus Windows' accent colour for the "Windows" accent).
+function publicConfig() {
+  let systemAccent = '';
+  try { systemAccent = systemPreferences.getAccentColor ? systemPreferences.getAccentColor() : ''; } catch { /* not on this OS */ }
+  return { ...config.get(), systemAccent };
 }
 
 function send(channel, payload) {
@@ -461,6 +493,62 @@ async function startOnDevice(name, arg) {
   return { ok: true, launching: true };
 }
 
+// Play / pause / next / previous for whatever is playing: Spotify through its API, anything else
+// (YouTube in a browser, VLC, the Spotify app without the API) through Windows media sessions.
+function transport(name) {
+  const spOn = spotify && spotify.status().connected;
+  const spPlaying = spOn && spotify.state && spotify.state.isPlaying;
+  if (!spPlaying && media) {
+    const s = media.active({ skipSpotify: spOn });
+    if (s && (s.status === 'playing' || !spOn)) {
+      media.command(name, s.id);
+      return { ok: true };
+    }
+  }
+  if (!spOn) return { ok: false, error: 'Çalan bir şey yok' };
+  return musicDo(name);
+}
+
+// YouTube-style titles ("Artist - Song (Official Video)") cleaned up for the lyrics search.
+function cleanMediaTrack({ id, title, artist, album, dur }) {
+  let name = String(title || '').trim();
+  let art = String(artist || '').replace(/\s*-\s*Topic$/i, '').replace(/\s*VEVO$/i, '').trim();
+  name = name.replace(/\s*[([][^)\]]*(official|video|audio|lyric|visuali[sz]er|\bhd\b|\b4k\b|\bmv\b|klip|resmi|şarkı sözleri|sözleri)[^)\]]*[)\]]/gi, '').trim();
+  const dash = name.match(/^(.+?)\s+[-–—|]\s+(.+)$/);
+  if (dash) { art = dash[1].trim(); name = dash[2].trim(); }
+  name = name.replace(/\s+(ft\.?|feat\.?)\s+.*$/i, '').replace(/["“”]/g, '').trim();
+  return { id: String(id), name, artists: art, firstArtist: art.split(/,|&| x | ve /i)[0].trim(), album: album || '', duration: Number(dur) || 0 };
+}
+
+// ================================================================= devices
+// "Headphones (WH-1000XM4)" -> "WH-1000XM4"
+function shortDeviceName(name) {
+  const m = /\(([^()]*(?:\([^()]*\))?[^()]*)\)\s*$/.exec(name || '');
+  let s = (m ? m[1] : name || '').replace(/^\d+-\s*/, '');
+  s = s.replace(/\s*(Stereo|Hands-Free( AG Audio)?|Handsfree|Audio)\s*$/i, '').trim();
+  return s || name;
+}
+const HEADPHONES = /(bluetooth|hands-?free|airpods|buds|headphone|headset|kulakl|\bwh-|\bwf-|jbl|beats|bose|soundcore|\bqcy|xm[3-6]|earbud|\bpods?\b)/i;
+
+function btBattery(name) {
+  return new Promise((resolve) => {
+    if (process.platform !== 'win32' || !name) return resolve(null);
+    require('child_process').execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(scriptsDir(), 'btbattery.ps1'), '-Name', name],
+      { windowsHide: true, timeout: 9000 }, (err, out) => {
+        const n = parseInt(String(out || '').trim(), 10);
+        resolve(err || Number.isNaN(n) ? null : Math.max(0, Math.min(100, n)));
+      });
+  });
+}
+
+async function onAudioDevice(full) {
+  if (config.get().deviceCards === false) return;
+  const headphones = HEADPHONES.test(full);
+  const name = headphones ? shortDeviceName(full) : full;
+  const battery = headphones ? await btBattery(name) : null;
+  send('island:event', { type: 'device', kind: headphones ? 'headphones' : 'speaker', name, full, battery });
+}
+
 // ================================================================= pomodoro
 function setupPomodoro() {
   watch = new Stopwatch();
@@ -526,8 +614,35 @@ function setupModules() {
   });
   updater.start();
 
+  shelf = new Shelf(ud, (p) => app.getFileIcon(p, { size: 'normal' }));
+  shelf.on('state', (st) => mod('shelf', st));
+  shelf.load().catch(() => {});
+
+  calendar = new Calendar();
+  calendar.on('state', (st) => mod('calendar', st));
+  calendar.setUrl(config.get().calendarUrl);
+  calendar.start();
+
+  media = new MediaSessions(scriptsDir());
+  media.on('state', (st) => mod('media', st));
+  if (config.get().media !== false) media.start();
+
   sysVol = new SystemVolume(scriptsDir());
-  sysVol.on('state', (v) => mod('volume', v));
+  let lastDev = null;
+  sysVol.on('state', (v) => {
+    mod('volume', v);
+    if (v.dev && lastDev !== null && v.dev !== lastDev) onAudioDevice(v.dev);
+    if (v.dev) lastDev = v.dev;
+  });
+
+  privacy = new PsLoop(scriptsDir(), 'privacy.ps1');
+  privacy.on('message', (m) => {
+    const list = (x) => (Array.isArray(x) ? x : x ? [x] : []).map(String);
+    privacyState = { cam: list(m.cam), mic: list(m.mic) };
+    mod('privacy', privacyState);
+    if (fullscreenHidden) applyVisibility();
+  });
+  if (config.get().privacyDots !== false) privacy.start();
   sysVol.start();
 
   winctl = new WinCtl(scriptsDir());
@@ -537,6 +652,7 @@ function setupModules() {
   // once a minute: class reminders and the daily summary
   const minute = () => {
     checkClassReminder();
+    checkCalendarReminder();
     checkDailySummary();
   };
   minuteTimer = setInterval(minute, 60 * 1000);
@@ -572,6 +688,22 @@ function checkClassReminder() {
   }
 }
 
+const remindedEvents = new Set();
+function checkCalendarReminder() {
+  const lead = Number(config.get().calendarReminder) || 0;
+  if (!lead || !calendar) return;
+  const now = Date.now();
+  for (const ev of calendar.state.events || []) {
+    if (ev.allDay) continue;
+    const left = Math.round((ev.start - now) / 60000);
+    if (left < 0 || left > lead || remindedEvents.has(ev.id)) continue;
+    remindedEvents.add(ev.id);
+    const hm = new Date(ev.start).toTimeString().slice(0, 5);
+    send('island:event', { type: 'calendar', id: ev.id, title: ev.title, start: ev.start, location: ev.location, link: ev.link, summary: `${ev.title} · ${left} dk sonra` });
+    notify(`${ev.title} ${left ? left + ' dk sonra' : 'başlıyor'}`, [hm, ev.location].filter(Boolean).join(' · '));
+  }
+}
+
 function checkDailySummary() {
   const t = config.get().summaryTime;
   if (!t) return;
@@ -585,9 +717,9 @@ function checkDailySummary() {
 
 // ================================================================= shortcuts
 const SHORTCUTS = [
-  ['CommandOrControl+Alt+Space', 'Müzik: oynat / duraklat', () => musicDo('toggle')],
-  ['CommandOrControl+Alt+Right', 'Müzik: sonraki', () => musicDo('next')],
-  ['CommandOrControl+Alt+Left', 'Müzik: önceki', () => musicDo('prev')],
+  ['CommandOrControl+Alt+Space', 'Müzik: oynat / duraklat', () => transport('toggle')],
+  ['CommandOrControl+Alt+Right', 'Müzik: sonraki', () => transport('next')],
+  ['CommandOrControl+Alt+Left', 'Müzik: önceki', () => transport('prev')],
   ['CommandOrControl+Alt+Up', 'Bilgisayar sesi +5', () => sysVol.step(5)],
   ['CommandOrControl+Alt+Down', 'Bilgisayar sesi −5', () => sysVol.step(-5)],
   ['CommandOrControl+Alt+M', 'Bilgisayar sesini kapat / aç', () => sysVol.toggleMute()],
@@ -715,6 +847,16 @@ ipcMain.on('island:decide', (_e, { id, decision }) => {
   }
 });
 
+// Dragging files off the shelf into Explorer, a browser upload box, an e-mail…
+ipcMain.on('shelf:drag', (e, paths) => {
+  const list = (Array.isArray(paths) ? paths : [paths]).filter((p) => shelf && shelf.has(p));
+  if (!list.length) return;
+  let icon = shelf.icon(list[0]);
+  if (!icon || icon.isEmpty()) icon = nativeImage.createFromPath(path.join(__dirname, '..', 'assets', 'icon.png')).resize({ width: 32 });
+  if (!icon || icon.isEmpty()) icon = makeTrayIcon(nativeImage);
+  try { e.sender.startDrag({ file: list[0], files: list, icon }); } catch (err) { diag('shelf-drag', err.message); }
+});
+
 ipcMain.on('island:answer', (_e, { askId, answers }) => { if (server) server.answerAsk(askId, answers || null); });
 ipcMain.on('island:dismiss', (_e, sessionId) => server && server.dismiss(sessionId));
 
@@ -727,7 +869,7 @@ ipcMain.on('island:focusSession', async (_e, s) => {
 });
 
 ipcMain.handle('island:init', () => ({
-  config: config.get(),
+  config: publicConfig(),
   state: server ? server.snapshot() : null,
   music: spotify ? spotify.publicState() : null,
   mods: {
@@ -741,10 +883,20 @@ ipcMain.handle('island:init', () => ({
     usage: usage ? usage.state : null,
     update: updater ? updater.latest : null,
     volume: sysVol ? sysVol.state : null,
+    media: media ? media.snapshot() : null,
+    shelf: shelf ? shelf.snapshot() : null,
+    privacy: privacyState,
+    calendar: calendar ? calendar.state : null,
   },
 }));
 
 ipcMain.handle('music:action', (_e, { name, arg }) => musicDo(name, arg));
+ipcMain.handle('viz:source', async () => {
+  try {
+    const src = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 0, height: 0 } });
+    return src[0] ? src[0].id : null;
+  } catch { return null; }
+});
 
 ipcMain.handle('music:list', async (_e, kind) => {
   try {
@@ -801,6 +953,14 @@ const CALLS = {
     close: () => serial.close(),
     send: (text) => serial.send(text),
     clear: () => serial.clear(),
+    csv: () => {
+      const d = new Date();
+      const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}${String(d.getSeconds()).padStart(2, '0')}`;
+      const out = path.join(app.getPath('desktop'), `ada-seri-${stamp}.csv`);
+      fs.writeFileSync(out, '\ufeff' + serial.csv());
+      shell.showItemInFolder(out);
+      return path.basename(out);
+    },
   },
   schedule: {
     get: () => schedule.get(),
@@ -836,6 +996,33 @@ const CALLS = {
         if (e.status === 403) return { ok: false, error: 'Bu listeye ekleme izni yok · Ayarlar\'dan Spotify\'a yeniden bağlan', reauth: true };
         return { ok: false, error: friendlySpotifyError(e) };
       }
+    },
+  },
+  claude: {
+    reply: ({ sessionId, text }) => server.sendReply(String(sessionId), String(text || '')),
+    hold: (sessionId) => server.holdReply(String(sessionId)),
+    release: (sessionId) => server.releaseReply(String(sessionId)),
+  },
+  shelf: {
+    add: (paths) => shelf.add(paths),
+    remove: (p) => shelf.remove(String(p)),
+    clear: () => shelf.clear(),
+    open: (p) => { if (shelf.has(p)) return shell.openPath(p); return 'yok'; },
+    reveal: (p) => { if (shelf.has(p)) shell.showItemInFolder(p); return true; },
+  },
+  media: {
+    cmd: ({ c, id, ms }) => media.command(String(c), String(id), Number(ms) || 0),
+    transport: (name) => transport(['toggle', 'next', 'prev'].includes(name) ? name : 'toggle'),
+    lyrics: (t) => lyrics.get(cleanMediaTrack(t || {})),
+  },
+  calendar: {
+    refresh: () => calendar.refresh(),
+    open: (link) => {
+      try {
+        const u = new URL(String(link));
+        if (u.protocol === 'https:' && /(^|\.)(meet\.google\.com|zoom\.us|teams\.microsoft\.com|teams\.live\.com)$/.test(u.hostname)) { shell.openExternal(u.href); return true; }
+      } catch { /* not a link */ }
+      return false;
     },
   },
   update: {
@@ -875,7 +1062,9 @@ ipcMain.handle('settings:get', () => ({
 
 const SETTABLE = {
   sound: 'bool', notifications: 'bool', desktopWatcher: 'bool', hideFullscreen: 'bool', sleepy: 'bool',
-  albumColor: 'bool', glass: 'bool', shortcuts: 'bool', clipboard: 'bool', translateLyrics: 'bool',
+  albumColor: 'bool', glass: 'bool', visualizer: 'bool', media: 'bool', shortcuts: 'bool', clipboard: 'bool', translateLyrics: 'bool',
+  privacyDots: 'bool', deviceCards: 'bool', quickReply: 'int', calendarUrl: 'url', calendarReminder: 'int',
+  skin: ['slate', 'black'], accent: ['deniz', 'gok', 'lila', 'mercan', 'fener', 'yosun', 'pembe', 'windows'],
   position: ['center', 'left', 'right'], display: 'int', scale: 'num', summaryTime: 'hm', classReminder: 'int', updateRepo: 'repo',
 };
 
@@ -889,6 +1078,7 @@ ipcMain.handle('settings:set', (_e, patch) => {
     else if (t === 'num') clean[k] = Math.max(0.8, Math.min(1.3, Number(v) || 1));
     else if (t === 'hm') clean[k] = /^\d{1,2}:\d{2}$/.test(v) || v === '' ? v : config.get()[k];
     else if (t === 'repo') clean[k] = /^[\w.-]+\/[\w.-]+$/.test(v) || v === '' ? v : config.get()[k];
+    else if (t === 'url') clean[k] = /^(https|webcal):\/\/\S+$/i.test(String(v).trim()) || v === '' ? String(v).trim() : config.get()[k];
     else if (Array.isArray(t) && t.includes(v)) clean[k] = v;
   }
   config.set(clean);
@@ -896,10 +1086,17 @@ ipcMain.handle('settings:set', (_e, patch) => {
   if ('hideFullscreen' in clean) clean.hideFullscreen ? winctl.startWatch(adaPoint()) : winctl.stopWatch();
   if ('shortcuts' in clean) registerShortcuts();
   if ('clipboard' in clean) clip.setEnabled(clean.clipboard);
+  if ('calendarUrl' in clean) { calendar.setUrl(clean.calendarUrl); calendar.start(); }
+  if ('quickReply' in clean) { clean.quickReply = Math.min(60, clean.quickReply); config.set({ quickReply: clean.quickReply }); server.replyWindow = clean.quickReply; }
+  if ('privacyDots' in clean) {
+    if (clean.privacyDots) privacy.start();
+    else { privacy.stop(); privacyState = { cam: [], mic: [] }; mod('privacy', privacyState); }
+  }
+  if ('media' in clean) clean.media ? media.start() : (media.stop(), media.state = { available: false, current: '', sessions: [] }, media.push());
   if ('position' in clean || 'display' in clean || 'scale' in clean) placeWindow();
   if ('updateRepo' in clean) { updater.setRepo(clean.updateRepo); updater.start(); }
   if ('loginAtStart' in (patch || {})) app.setLoginItemSettings({ openAtLogin: !!patch.loginAtStart });
-  send('island:config', config.get());
+  send('island:config', publicConfig());
   refreshTrayMenu();
   return config.get();
 });
@@ -921,7 +1118,7 @@ ipcMain.handle('spotify:playlists', async () => {
 });
 
 // Only these sites may be opened from Ada's pages.
-const OPENABLE = ['developer.spotify.com', 'lrclib.net', 'www.spotify.com', 'github.com', 'mymemory.translated.net'];
+const OPENABLE = ['developer.spotify.com', 'lrclib.net', 'www.spotify.com', 'github.com', 'mymemory.translated.net', 'calendar.google.com'];
 ipcMain.on('app:open', (_e, url) => {
   try {
     const u = new URL(url);
@@ -933,11 +1130,13 @@ ipcMain.on('app:open', (_e, url) => {
 app.whenReady().then(() => {
   config.load(app.getPath('userData'));
   createWindow();
+  try { systemPreferences.on('accent-color-changed', () => send('island:config', publicConfig())); } catch { /* not on this OS */ }
 
   setupModules();
   setupPomodoro();
 
   server = new HookServer(PORT);
+  server.replyWindow = Number(config.get().quickReply) || 0;
   server.on('state', (state) => { send('island:state', state); applyVisibility(); });
   server.on('event', (ev) => {
     send('island:event', ev);
@@ -998,9 +1197,12 @@ app.on('before-quit', () => {
   if (winctl) winctl.stopWatch();
   if (sys) sys.stop();
   if (sysVol) sysVol.stop();
+  if (media) media.stop();
+  if (privacy) privacy.stop();
   if (clip) clip.stop();
   if (usage) usage.stop();
   if (updater) updater.stop();
+  if (calendar) calendar.stop();
   if (watch) watch.flushFocus();
-  for (const s of [schedule, notes, stats && stats.store, pomo && pomo.store]) if (s) s.saveNow();
+  for (const s of [schedule, notes, stats && stats.store, pomo && pomo.store, shelf && shelf.store]) if (s) s.saveNow();
 });

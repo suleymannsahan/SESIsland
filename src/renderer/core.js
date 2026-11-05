@@ -92,6 +92,8 @@
     showCard: (c) => { card = c; render(); },
     holdOpen: (on) => { ui.holdOpen = !!on; },
   };
+  const eventListeners = [];
+  Ada.onEvent = (fn) => eventListeners.push(fn);
   window.Ada = Ada;
 
   // ------------------------------------------------------------ cards
@@ -180,7 +182,30 @@
     };
   }
 
+  // quick replies: what the chips send to Claude
+  const QUICK = [
+    ['Devam et', 'Devam et.'],
+    ['Test et', 'Yaptığın değişiklikleri test et ve sonucu kısaca söyle.'],
+    ['Açıkla', 'Ne yaptığını kısaca, maddeler hâlinde açıkla.'],
+    ['Commit at', 'Değişiklikleri anlamlı bir mesajla commit et.'],
+  ];
   function viewDone(d) {
+    if (d.replyUntil && Date.now() < d.replyUntil) {
+      const left = Math.max(0, Math.ceil((d.replyUntil - Date.now()) / 1000));
+      return {
+        mode: 'card', status: 'done', key: 'done:' + d.id,
+        html: `<div class="card done-card">
+          <div class="card-head"><span class="glyph" data-s="done" data-morph="glyph"></span><span class="proj" data-morph="proj" data-morph-text>${esc(d.project)}</span><span class="what">tamamlandı</span>
+            <span class="queue" data-region="qrleft">${left} sn</span>
+            <button class="ic xs" data-act="dismiss" data-id="${esc(d.sessionId)}" title="Kapat">${I.x}</button></div>
+          ${d.summary ? `<p class="msg clamp3">${esc(d.summary)}</p>` : ''}
+          <div class="qr">
+            ${QUICK.map(([label], i) => `<button class="opt" data-act="qr" data-id="${i}">${label}</button>`).join('')}
+          </div>
+          <input type="text" class="qr-in" data-qreply="1" placeholder="Claude'a yanıt yaz… (Enter ile gönder)" spellcheck="false" autocomplete="off" aria-label="Claude'a yanıt">
+        </div>`,
+      };
+    }
     return {
       mode: 'card', status: 'done', key: 'done:' + d.sessionId + d.until,
       html: `<div class="card" data-act="dismiss" data-id="${esc(d.sessionId)}">
@@ -196,13 +221,16 @@
 
   // ------------------------------------------------------------ the lighthouse (Ada's mascot)
   // mood: idle | working | waiting | done | sleep
-  function lighthouse(mood) {
-    return `<span class="fener" data-mood="${mood}" data-act="fener" data-morph="glyph" aria-hidden="true">
+  function lighthouse(mood, extra = {}) {
+    return `<span class="fener" data-mood="${mood}" data-tod="${extra.tod || 'day'}" data-exam="${extra.exam ? 1 : 0}" data-act="fener" data-morph="glyph" aria-hidden="true">
       <svg viewBox="-8 0 40 24">
         <defs>
           <linearGradient id="beamL" x1="1" x2="0"><stop offset="0" stop-color="var(--lamp)" stop-opacity=".55"/><stop offset="1" stop-color="var(--lamp)" stop-opacity="0"/></linearGradient>
           <linearGradient id="beamR" x1="0" x2="1"><stop offset="0" stop-color="var(--lamp)" stop-opacity=".55"/><stop offset="1" stop-color="var(--lamp)" stop-opacity="0"/></linearGradient>
         </defs>
+        <g class="stars"><circle cx="-5" cy="3" r=".7"/><circle cx="-1.5" cy="10.5" r=".5"/><circle cx="26" cy="12" r=".55"/><circle cx="20.5" cy="1.4" r=".45"/></g>
+        <path class="moon" d="M29.6 1.2a3.3 3.3 0 1 0 2.2 5.6a2.7 2.7 0 1 1 -2.2 -5.6z"/>
+        <circle class="sun" cx="19.6" cy="20.2" r="3.4"/>
         <polygon class="beam-l" points="12,6 -8,1.5 -8,10.5" fill="url(#beamL)"/>
         <polygon class="beam-r" points="12,6 32,1.5 32,10.5" fill="url(#beamR)"/>
         <polygon class="roof" points="8.6,4.2 12,1.6 15.4,4.2"/>
@@ -213,6 +241,8 @@
         <polygon class="stripe" points="9.1,17 14.9,17 15.1,19 8.9,19"/>
         <rect class="base" x="7.2" y="21" width="9.6" height="1.6" rx=".8"/>
         <circle class="spark" cx="18.5" cy="3" r="1.1"/>
+        <path class="drop" d="M17.2 5.6q1.3 1.7 0 2.6q-1.3 -.9 0 -2.6z"/>
+        <text class="zz" x="16.5" y="5">z</text>
       </svg>
     </span>`;
   }
@@ -220,20 +250,50 @@
   const moodOf = (status) => ({ working: 'working', waiting: 'waiting', question: 'waiting', done: 'done' }[status] || 'idle');
 
   // ------------------------------------------------------------ collapsed views
+  // time of day and exams change the lighthouse a little: stars and a moon at night, the sun at
+  // dawn, a drop of sweat the day before an exam
+  function scene() {
+    const d = new Date();
+    const h = d.getHours();
+    const tod = h >= 21 || h < 6 ? 'night' : h < 9 ? 'dawn' : 'day';
+    const iso = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+    const tomorrow = new Date(d); tomorrow.setDate(d.getDate() + 1);
+    const exams = (S.mods.schedule && S.mods.schedule.exams) || [];
+    const exam = exams.some((x) => x.date === iso(d) || x.date === iso(tomorrow));
+    return { tod, exam };
+  }
+  Ada.scene = scene;
+
   function viewRest() {
-    const sleepy = S.config.sleepy !== false && Date.now() - ui.lastActivity > 90 * 1000;
-    return { mode: sleepy ? 'rest sleepy' : 'rest', status: 'idle', html: `<div class="rest">${lighthouse(sleepy ? 'sleep' : 'idle')}</div>` };
+    const dots = privacyHtml();
+    const sleepy = !dots && S.config.sleepy !== false && Date.now() - ui.lastActivity > 90 * 1000;
+    return { mode: sleepy ? 'rest sleepy' : 'rest', status: 'idle', html: `<div class="rest ${dots ? 'has-priv' : ''}">${lighthouse(sleepy ? 'sleep' : 'idle', scene())}${dots}</div>` };
   }
 
+  // camera / microphone in use (Windows privacy indicator): small dots next to the island's content
+  function privacyHtml() {
+    const p = S.mods.privacy;
+    if (!p || S.config.privacyDots === false) return '';
+    const cam = (p.cam || []).length;
+    const mic = (p.mic || []).length;
+    if (!cam && !mic) return '';
+    const who = [...new Set([...(p.cam || []), ...(p.mic || [])])].join(', ');
+    return `<span class="priv" title="${esc((cam ? 'Kamera' : '') + (cam && mic ? ' ve ' : '') + (mic ? 'mikrofon' : '') + ' kullanımda: ' + who)}">${cam ? '<i class="cam"></i>' : ''}${mic ? '<i class="mic"></i>' : ''}</span>`;
+  }
+  Ada.privacyHtml = privacyHtml;
+
   function viewPill(s) {
-    const others = S.claude.sessions.filter(live).length - 1;
+    const others = S.claude.sessions.filter((x) => live(x) && x !== s).sort((a, b) => (rank[a.status] - rank[b.status]) || (b.updatedAt - a.updatedAt));
+    const shown = others.slice(0, 2);
+    const more = others.length - shown.length;
     return {
       mode: 'pill', status: s.status,
       html: `<div class="pill">
         ${lighthouse(moodOf(s.status))}
         <span class="proj" data-morph="proj" data-morph-text>${esc(s.project)}</span>
-        <span class="act">${esc(s.activity)}</span>
-        ${others > 0 ? `<span class="count" title="Diğer oturumlar">+${others}</span>` : ''}
+        <span class="act ${shown.length ? 'short' : ''}">${esc(s.activity)}</span>
+        ${shown.map((x) => `<span class="osess" title="${esc(x.project)} · ${esc(x.activity)}"><span class="glyph" data-s="${esc(x.status)}"></span>${esc(x.project)}</span>`).join('')}
+        ${more > 0 ? `<span class="count" title="Diğer oturumlar">+${more}</span>` : ''}
       </div>`,
     };
   }
@@ -267,12 +327,16 @@
     if (doneCard && Date.now() < doneCard.until) return viewDone(doneCard);
     if (card && (card.sticky || Date.now() < card.until)) return viewInfoCard(card);
     if (ui.hovered) return viewPanel();
+    const withPriv = (v) => {
+      const dots = privacyHtml();
+      return dots ? { ...v, html: v.html.replace(/<\/div>\s*$/, dots + '</div>') } : v;
+    };
     const p = primarySession();
-    if (p && live(p)) return viewPill(p);
+    if (p && live(p)) return withPriv(viewPill(p));
     // tabs may offer a collapsed pill (pomodoro, class reminder, music) in priority order
     for (const t of [...tabs].sort((a, b) => (a.pillRank || 99) - (b.pillRank || 99))) {
       const v = t.pill && t.pill();
-      if (v) return { mode: 'pill', key: 'pill:' + t.id, ...v };
+      if (v) return withPriv({ mode: 'pill', key: 'pill:' + t.id, ...v });
     }
     return viewRest();
   }
@@ -418,7 +482,73 @@
     island.classList.remove('bump');
     void island.offsetWidth;
     island.classList.add('bump');
+    clearTimeout(bump.t);
+    bump.t = setTimeout(() => island.classList.remove('bump'), 560);
   }
+
+  // ------------------------------------------------------------ event effects
+  // Drawn in #fx, a click-through layer around the island: a ring of light, a shine sweep, confetti.
+  const fxEl = document.getElementById('fx');
+  const COLORS = { done: '#9bd17a', ask: '#f2b544', pomo: '#5cc8c4', class: '#b7a6f2', error: '#f07c6b', music: '#9bd17a' };
+  function flash(kind) {
+    if (!fxEl || reduceMotion()) return;
+    const c = COLORS[kind] || kind;
+    // wait one frame so the island already has its new size
+    requestAnimationFrame(() => setTimeout(() => {
+      const r = island.getBoundingClientRect();
+      const ring = document.createElement('div');
+      ring.className = 'fx-ring';
+      ring.style.left = r.left + 'px';
+      ring.style.top = r.top + 'px';
+      ring.style.width = r.width + 'px';
+      ring.style.height = r.height + 'px';
+      ring.style.borderRadius = getComputedStyle(island).borderRadius;
+      ring.style.setProperty('--c', c);
+      fxEl.appendChild(ring);
+      const sy = 1 + 26 / Math.max(30, r.height);
+      const sx = 1 + 26 / Math.max(60, r.width);
+      ring.animate([
+        { transform: 'scale(1)', opacity: 0.95 },
+        { transform: `scale(${sx}, ${sy})`, opacity: 0 },
+      ], { duration: 820, easing: 'cubic-bezier(.15,.75,.25,1)' }).onfinish = () => ring.remove();
+    }, 120));
+  }
+  function shine() {
+    if (reduceMotion()) return;
+    const el = document.createElement('div');
+    el.className = 'fx-shine';
+    island.appendChild(el);
+    el.animate([{ transform: 'translateX(-110%)' }, { transform: 'translateX(110%)' }], { duration: 900, delay: 160, easing: 'ease-in-out' })
+      .onfinish = () => el.remove();
+  }
+  function burst(colors = ['#5cc8c4', '#9bd17a', '#f2b544', '#b7a6f2', '#f07c6b']) {
+    if (!fxEl || reduceMotion()) return;
+    requestAnimationFrame(() => {
+      const r = island.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height - 4;
+      for (let i = 0; i < 26; i++) {
+        const dot = document.createElement('i');
+        dot.className = 'fx-dot' + (i % 3 === 0 ? ' sq' : '');
+        dot.style.left = cx + 'px';
+        dot.style.top = cy + 'px';
+        dot.style.background = colors[i % colors.length];
+        fxEl.appendChild(dot);
+        // a fan downwards and to the sides (the island sits at the top of the screen)
+        const a = (Math.PI / 180) * (8 + Math.random() * 164);
+        const v = 70 + Math.random() * 110;
+        const dx = Math.cos(a) * v * 1.4;
+        const dy = Math.sin(a) * v * 0.6;
+        const rot = (Math.random() * 540 - 270) | 0;
+        dot.animate([
+          { transform: 'translate(-50%, -50%) scale(.4)', opacity: 1 },
+          { transform: `translate(calc(-50% + ${dx * 0.7}px), calc(-50% + ${dy * 0.7}px)) rotate(${rot / 2}deg) scale(1)`, opacity: 1, offset: 0.45 },
+          { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy + 70}px)) rotate(${rot}deg) scale(.8)`, opacity: 0 },
+        ], { duration: 1100 + Math.random() * 500, easing: 'cubic-bezier(.2,.6,.4,1)', delay: Math.random() * 90 }).onfinish = () => dot.remove();
+      }
+    });
+  }
+  Ada.fx = { flash, shine, burst, bump: () => bump() };
   function activity() { ui.lastActivity = Date.now(); }
 
   // ------------------------------------------------------------ sound
@@ -446,9 +576,32 @@
     } catch { /* audio unavailable */ }
   }
 
+  // accent: one of the palette colours or Windows' own accent colour (lifted so it reads on dark)
+  const ACCENTS = { deniz: '#5cc8c4', gok: '#6aa8f7', lila: '#b7a6f2', mercan: '#f07c6b', fener: '#f2b544', yosun: '#9bd17a', pembe: '#f28cc0' };
+  function readable(hex) {
+    const m = /^#?([0-9a-f]{6})/i.exec(hex || '');
+    if (!m) return null;
+    let [r, g, b] = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16) / 255);
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, sat = 0, l = (max + min) / 2;
+    if (max !== min) {
+      const d = max - min;
+      sat = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      h /= 6;
+    }
+    l = Math.max(l, 0.64);
+    sat = Math.min(sat, 0.8);
+    return `hsl(${Math.round(h * 360)} ${Math.round(sat * 100)}% ${Math.round(l * 100)}%)`;
+  }
   function applyBodyConfig(c) {
     document.body.dataset.pos = c.position || 'center';
     document.body.classList.toggle('glass', c.glass !== false);
+    document.body.classList.toggle('no-album', c.albumColor === false);
+    document.body.dataset.skin = c.skin || 'slate';
+    const acc = c.accent === 'windows' ? readable(c.systemAccent) : ACCENTS[c.accent];
+    if (acc) document.documentElement.style.setProperty('--deniz', acc);
+    else document.documentElement.style.removeProperty('--deniz');
   }
 
   // ------------------------------------------------------------ scroll gestures
@@ -475,8 +628,8 @@
       const dir = swipe > 0 ? 'next' : 'prev';
       swipe = 0;
       swipeLock = Date.now() + 700;
-      if (!S.music || !S.music.connected) return;
-      ada.music(dir).then((r) => { if (r && !r.ok) toast({ kind: 'error', text: r.error }); });
+      if (!(Ada.musicPlaying && Ada.musicPlaying()) && !(S.music && S.music.connected)) return;
+      ada.call('media', 'transport', dir).then((r) => { const x = r && r.result; if (x && !x.ok) toast({ kind: 'error', text: x.error }); });
       hud(`${dir === 'next' ? I.next : I.prev}<span>${dir === 'next' ? 'Sonraki şarkı' : 'Önceki şarkı'}</span>`);
       return;
     }
@@ -527,6 +680,15 @@
     render();
   }
   Ada.closePanel = closePanel;
+  Ada.openTab = (id) => {
+    const prev = currentTab();
+    if (ui.hovered && prev && prev.id !== id && prev.onLeave) prev.onLeave();
+    ui.tab = id;
+    if (!ui.hovered) { ui.hovered = true; activity(); }
+    const t = currentTab();
+    if (t && t.onEnter) t.onEnter();
+    render();
+  };
 
   // The main process tells us when the cursor enters or leaves the island (see main.js).
   ui.pointer = false;
@@ -649,7 +811,12 @@
       return;
     }
     if (act === 'settings') { ada.openSettings(id || ''); return; }
-    if (act === 'dismiss') { ada.dismiss(id); doneCard = null; render(); return; }
+    if (act === 'dismiss') {
+      if (doneCard && doneCard.replyUntil) ada.call('claude', 'release', id);
+      if (ui.holdOpen) { const a = document.activeElement; if (a && a.blur) a.blur(); }
+      ada.dismiss(id); doneCard = null; render(); return;
+    }
+    if (act === 'qr') { sendQuickReply(QUICK[Number(id)][1]); return; }
     if (act === 'closeCard') { card = null; render(); return; }
     if (act === 'updateOpen') { ada.call('update', 'open'); card = null; render(); return; }
     if (act === 'allow' || act === 'deny' || act === 'ask') {
@@ -664,6 +831,33 @@
       if (t.onAct && t.onAct(act, id, el, e) === true) return;
     }
   }
+
+  async function sendQuickReply(text) {
+    if (!doneCard || !text.trim()) return;
+    const d = doneCard;
+    const r = await ada.call('claude', 'reply', { sessionId: d.sessionId, text });
+    if (ui.holdOpen) { const a = document.activeElement; if (a && a.blur) a.blur(); }
+    if (r.ok && r.result) {
+      doneCard = null;
+      toast({ kind: 'info', text: "Claude'a iletildi" });
+    } else {
+      toast({ kind: 'error', text: 'Süre doldu · yanıtını terminalde yaz' });
+      doneCard = null;
+    }
+    render();
+  }
+  // typing a reply keeps the session waiting (up to about a minute)
+  island.addEventListener('focusin', (e) => {
+    if (!e.target.matches('[data-qreply]') || !doneCard) return;
+    const d = doneCard;
+    ada.call('claude', 'hold', d.sessionId).then((r) => {
+      if (r.ok && r.result && doneCard === d) { d.replyUntil = r.result; d.until = Math.max(d.until, r.result); }
+    });
+  });
+  island.addEventListener('keydown', (e) => {
+    if (!e.target.matches('[data-qreply]')) return;
+    if (e.key === 'Enter') { e.preventDefault(); sendQuickReply(e.target.value); }
+  });
 
   function onAnswer(act, el) {
     const s = S.claude.sessions.find((x) => x.status === 'question' && x.question && x.question.askId);
@@ -702,10 +896,17 @@
   ada.on('island:state', (s) => { S.claude = s; activity(); render(); });
   ada.on('island:event', (ev) => {
     activity();
-    if (ev.type === 'permission' || ev.type === 'question') { chime('ask'); bump(); }
+    if (ev.type === 'permission' || ev.type === 'question') { chime('ask'); bump(); flash('ask'); }
+    if (ev.type === 'pomodoro') { burst(); flash('pomo'); }
+    if (ev.type === 'class') flash('class');
     if (ev.type === 'done') {
       chime('done');
-      doneCard = { sessionId: ev.sessionId, project: ev.project, summary: ev.summary, until: Date.now() + 7000 };
+      flash('done');
+      shine();
+      doneCard = {
+        id: Date.now(), sessionId: ev.sessionId, project: ev.project, summary: ev.summary,
+        replyUntil: ev.replyUntil || 0, until: Math.max(Date.now() + 7000, ev.replyUntil || 0),
+      };
       bump();
     }
     if (ev.type === 'update') {
@@ -733,6 +934,7 @@
       chime('done');
     }
     for (const t of tabs) if (t.onEvent) t.onEvent(ev);
+    for (const fn of eventListeners) fn(ev);
     render();
   });
   ada.on('music:state', (m) => { S.music = m; for (const t of tabs) if (t.onMusic) t.onMusic(m); render(); });

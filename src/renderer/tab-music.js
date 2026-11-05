@@ -17,23 +17,57 @@
     adding: null,           // playlist id being added to
     lyricIdx: -1,
     albumFor: null,
+    src: null,              // source picked by hand: 'spotify' or a Windows media session id
+    mlyrKey: null,          // media track whose lyrics were asked for
   };
 
   const player = () => (S.music && S.music.player) || null;
   const track = () => (player() && player().track) || null;
+
+  // ------------------------------------------------------------ sources: Spotify + Windows media
+  const spConnected = () => !!(S.music && S.music.connected);
+  const media = () => S.mods.media || { available: false, sessions: [], current: '' };
+  // with Spotify connected its own (richer) view is used, so the Spotify app's Windows session is skipped
+  const mediaList = () => (media().sessions || []).filter((x) => !(spConnected() && x.spotify));
+  function source() {
+    const list = mediaList();
+    if (m.src === 'spotify' && spConnected()) return 'spotify';
+    if (m.src && m.src !== 'spotify' && list.some((x) => x.id === m.src)) return m.src;
+    const p = player();
+    if (p && p.isPlaying && p.track) return 'spotify';
+    const playing = list.find((x) => x.status === 'playing');
+    if (playing) return playing.id;
+    if (spConnected() && p && p.track) return 'spotify';
+    if (list.length) return (list.find((x) => x.id === media().current) || list[0]).id;
+    return 'spotify';
+  }
+  const msess = (id = source()) => mediaList().find((x) => x.id === id) || null;
+  const mPos = (x) => {
+    if (!x) return 0;
+    const ms = x.status === 'playing' ? x.pos + (Date.now() - x.at) : x.pos;
+    return x.dur ? Math.max(0, Math.min(ms, x.dur)) : Math.max(0, ms);
+  };
+  const mTrackId = (x) => 'm:' + x.id + ':' + x.key;
+  Ada.musicPlaying = () => !!((player() && player().isPlaying) || mediaList().some((x) => x.status === 'playing'));
+  const APP_ICON = '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="12" rx="2"/><path d="M10.5 8.8v6.4l5-3.2z" class="f"/></svg>';
   const deviceIcon = (type) => (/smartphone|tablet/i.test(type) ? I.phone : /speaker|avr|stb|tv|cast/i.test(type) ? I.speaker : I.computer);
 
   function position() {
+    if (m.seekDrag != null) return m.seekDrag;
+    if (source() !== 'spotify') return mPos(msess());
     const p = player();
     if (!p || !p.track) return 0;
-    if (m.seekDrag != null) return m.seekDrag;
     const ms = p.isPlaying ? p.progress + (Date.now() - p.at) : p.progress;
     return Math.min(ms, p.track.duration);
+  }
+  function duration() {
+    if (source() !== 'spotify') { const x = msess(); return x ? x.dur : 0; }
+    return track() ? track().duration : 0;
   }
 
   // ------------------------------------------------------------ album colour
   function albumColor(url) {
-    if (!url || S.config.albumColor === false) { island.style.removeProperty('--album'); return; }
+    if (!url || S.config.albumColor === false) { island.style.removeProperty('--album'); m.albumFor = null; return; }
     if (m.albumFor === url) return;
     m.albumFor = url;
     const img = new Image();
@@ -80,7 +114,7 @@
         <div class="meta">
           <div class="t-name" title="${esc(t.name)}"><span data-morph="title" data-morph-text>${esc(t.name)}</span></div>
           <div class="t-artist" title="${esc(t.artists)}"><span data-morph="artist" data-morph-text>${esc(t.artists)}</span></div>
-          ${p.device ? `<div class="t-dev">${deviceIcon(p.device.type)}<span>${esc(p.device.name)}</span></div>` : ''}
+          ${p.device ? `<div class="t-dev">${deviceIcon(p.device.type)}<span>${esc(p.device.name)}</span>${p.isPlaying ? '<span class="eq on dev-eq" data-viz aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>' : ''}</div>` : ''}
         </div>
         ${t.episode ? '' : `<div class="np-acts">
           <button class="ic like ${p.liked ? 'on' : ''}" data-act="m:like" title="${p.liked ? 'Beğenilenlerden çıkar' : 'Beğen'}" aria-pressed="${!!p.liked}">${p.liked ? I.liked : I.heart}</button>
@@ -104,6 +138,59 @@
       ${volHtml()}`;
   }
 
+  // A Windows media session (YouTube in a browser, VLC, the Spotify app without the API…)
+  function mediaLeftHtml(x) {
+    const playing = x.status === 'playing';
+    return `
+      <div class="np">
+        ${x.thumb ? `<img class="cover" src="${esc(x.thumb)}" alt="" data-morph="cover">` : `<span class="cover app-cover" data-morph="cover">${APP_ICON}</span>`}
+        <div class="meta">
+          <div class="t-name" title="${esc(x.title)}"><span data-morph="title" data-morph-text>${esc(x.title || x.app)}</span></div>
+          <div class="t-artist" title="${esc(x.artist)}"><span data-morph="artist" data-morph-text>${esc(x.artist || '—')}</span></div>
+          <div class="t-dev src-app">${APP_ICON}<span>${esc(x.app)}</span></div>
+        </div>
+        <span class="eq ${playing ? 'on' : ''} np-eq" data-viz aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+      </div>
+      ${x.dur ? `<div class="seek">
+        <span class="tm" data-live="cur">0:00</span>
+        <div class="bar ${x.seek ? '' : 'ro'}" ${x.seek ? 'data-seek="1"' : ''} role="slider" aria-label="İlerleme">
+          <div class="fill" data-live="fill"></div><div class="knob" data-live="knob"></div>
+        </div>
+        <span class="tm">${mmss(x.dur)}</span>
+      </div>` : '<div class="seek-gap"></div>'}
+      <div class="ctrl">
+        <button class="ic" data-act="m:prev" title="Önceki · Ctrl+Alt+←" ${x.prev ? '' : 'disabled'}>${I.prev}</button>
+        <button class="ic big" data-act="m:toggle" title="${playing ? 'Duraklat' : 'Oynat'} · Ctrl+Alt+Boşluk">${playing ? I.pause : I.play}</button>
+        <button class="ic" data-act="m:next" title="Sonraki · Ctrl+Alt+→" ${x.next ? '' : 'disabled'}>${I.next}</button>
+      </div>
+      ${volHtml()}`;
+  }
+
+  function sourcesBody() {
+    const list = mediaList();
+    const cur = source();
+    const rows = [];
+    if (spConnected()) {
+      const p = player();
+      const t = track();
+      rows.push(`<button class="li ${cur === 'spotify' ? 'on' : ''}" data-act="m:src" data-id="spotify">
+        ${t && t.coverSmall ? `<img class="li-art" src="${esc(t.coverSmall)}" alt="">` : `<span class="li-art dev">${I.note}</span>`}
+        <span class="li-name">${esc(t ? t.name : 'Spotify')}<small>Spotify${t ? ' · ' + esc(t.artists) : ''}</small></span>
+        <span class="li-meta">${p && p.isPlaying ? 'çalıyor' : ''}</span></button>`);
+    }
+    for (const x of list) {
+      rows.push(`<button class="li ${cur === x.id ? 'on' : ''}" data-act="m:src" data-id="${esc(x.id)}">
+        ${x.thumb ? `<img class="li-art" src="${esc(x.thumb)}" alt="">` : `<span class="li-art dev">${APP_ICON}</span>`}
+        <span class="li-name">${esc(x.title || x.app)}<small>${esc(x.app)}${x.artist ? ' · ' + esc(x.artist) : ''}</small></span>
+        <span class="li-meta">${x.status === 'playing' ? 'çalıyor' : x.status === 'paused' ? 'duraklatıldı' : ''}</span></button>`);
+    }
+    if (!rows.length) {
+      return `<div class="sub"><p class="hint">${media().available === false && media().error ? 'Windows medya bilgisine ulaşılamadı.' : 'Şu an hiçbir uygulamada medya yok. YouTube, VLC ya da başka bir oynatıcıda bir şey başlat, burada görünür.'}</p></div>`;
+    }
+    const tip = spConnected() ? '' : `<p class="hint mini">Spotify'ı bağlarsan arama, playlistler ve playliste ekleme de açılır. <button class="btn-text sm" data-act="settings" data-id="spotify">Bağla</button></p>`;
+    return `<div class="sub list">${rows.join('')}${tip}</div>`;
+  }
+
   // The slider controls the computer's master volume (Windows), not Spotify's own volume.
   function volHtml() {
     const v = S.mods.volume;
@@ -116,16 +203,31 @@
       </div>`;
   }
 
+  function curSub() {
+    const sp = source() === 'spotify';
+    const hasTrack = sp ? !!track() : !!msess();
+    let sub = m.sub;
+    if ((sub === 'lyrics' || sub === 'add') && !hasTrack) sub = spConnected() ? 'playlists' : 'sources';
+    if (sub === 'add' && !sp) sub = 'lyrics';
+    if (!spConnected() && ['search', 'playlists', 'devices', 'add'].includes(sub)) sub = hasTrack ? 'lyrics' : 'sources';
+    return sub;
+  }
+
   function segs() {
-    const b = (id, label) => `<button class="seg ${m.sub === id ? 'on' : ''}" data-act="m:sub" data-id="${id}">${label}</button>`;
-    const canTranslate = m.sub === 'lyrics' && track() && (m.lyr.status === 'synced' || m.lyr.status === 'plain');
-    return `<div class="segs">${track() ? b('lyrics', 'Sözler') : ''}${b('search', 'Ara')}${b('playlists', 'Listeler')}${b('devices', 'Cihazlar')}
+    const sub = curSub();
+    const b = (id, label) => `<button class="seg ${sub === id ? 'on' : ''}" data-act="m:sub" data-id="${id}">${label}</button>`;
+    const sp = source() === 'spotify';
+    const hasTrack = sp ? !!track() : !!msess();
+    const canTranslate = sp && sub === 'lyrics' && hasTrack && (m.lyr.status === 'synced' || m.lyr.status === 'plain');
+    const many = mediaList().length + (spConnected() ? 1 : 0) > 1 || !spConnected();
+    return `<div class="segs">${hasTrack ? b('lyrics', 'Sözler') : ''}${spConnected() ? b('search', 'Ara') + b('playlists', 'Listeler') + b('devices', 'Cihazlar') : ''}${many ? b('sources', 'Kaynaklar') : ''}
       ${canTranslate ? `<button class="seg tr ${m.trans.on ? 'on' : ''}" data-act="m:translate" title="Sözleri Türkçeye çevir">${m.trans.loading ? '…' : 'TR'}</button>` : ''}
     </div>`;
   }
 
   function subBody() {
-    const sub = !track() && (m.sub === 'lyrics' || m.sub === 'add') ? 'playlists' : m.sub;
+    const sub = curSub();
+    if (sub === 'sources') return sourcesBody();
     if (sub === 'lyrics') return lyricsBody();
     if (sub === 'search') return searchBody();
     if (sub === 'add') return addBody();
@@ -203,7 +305,8 @@
   }
 
   function lyricsBody() {
-    const t = track();
+    const x = source() === 'spotify' ? null : msess();
+    const t = x ? { id: mTrackId(x) } : track();
     const l = m.lyr;
     if (!t || l.trackId !== t.id || l.status === 'loading') return '<div class="sub lyrics"><p class="hint">Sözler aranıyor…</p></div>';
     if (l.status === 'instrumental') return '<div class="sub lyrics"><p class="hint">Enstrümantal</p></div>';
@@ -217,16 +320,18 @@
   }
 
   function body() {
-    if (!S.music || !S.music.connected) {
+    const src = source();
+    const x = src === 'spotify' ? null : msess();
+    if (!spConnected() && !x) {
       return `<div class="m-empty">
-        <p><b>Spotify'ı bağla</b>, çalan şarkıyı, playlistlerini ve sözleri buradan yönet.</p>
+        <p><b>Spotify'ı bağla</b>, çalan şarkıyı, playlistlerini ve sözleri buradan yönet. Bağlamasan da YouTube, VLC gibi uygulamalarda çalanlar burada görünür.</p>
         <button class="btn-allow" data-act="settings" data-id="spotify">Spotify'ı bağla</button>
       </div>`;
     }
-    const left = track()
+    const left = x ? mediaLeftHtml(x) : track()
       ? leftHtml()
       : `<div class="m-empty"><p>Şu an bir şey çalmıyor. Sağdan bir şarkı ara ya da bir playlist seç; Spotify kapalıysa ben açarım.</p></div>${volHtml()}`;
-    const searchBox = m.sub === 'search'
+    const searchBox = curSub() === 'search'
       ? `<input type="text" class="m-search" data-msearch="1" placeholder="Ara: şarkı, sanatçı, albüm" spellcheck="false" autocomplete="off" aria-label="Spotify'da ara">`
       : '';
     return `<div class="m-grid">
@@ -292,10 +397,10 @@
 
   // ------------------------------------------------------------ live updates
   function tick(root, force) {
-    const t = track();
-    if (!t) return;
+    const dur = duration();
+    if (!dur && !root.querySelector('[data-live="lyrics"]')) return;
     const pos = position();
-    const ratio = t.duration ? Math.min(1, pos / t.duration) : 0;
+    const ratio = dur ? Math.min(1, pos / dur) : 0;
     const pct = (ratio * 100).toFixed(2) + '%';
     const fill = root.querySelector('[data-live="fill"]');
     if (fill) {
@@ -324,9 +429,10 @@
   // seek by click or drag
   island.addEventListener('mousedown', (e) => {
     const bar = e.target.closest('[data-seek]');
-    if (!bar || !track()) return;
+    if (!bar || !duration()) return;
     e.preventDefault();
-    const dur = track().duration;
+    const dur = duration();
+    const src = source();
     const at = (ev) => {
       const r = bar.getBoundingClientRect();
       return Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)) * dur;
@@ -342,7 +448,12 @@
       const ms = at(ev);
       m.seekDrag = null;
       ui.drag = false;
-      act('seek', ms);
+      if (src === 'spotify') act('seek', ms);
+      else {
+        const x = msess(src);
+        if (x) { x.pos = ms; x.at = Date.now(); }
+        ada.call('media', 'cmd', { c: 'seek', id: src, ms });
+      }
       Ada.afterPointerAction();
     };
     window.addEventListener('mousemove', move);
@@ -422,26 +533,49 @@
     ada.call('volume', 'set', v);
   }, { passive: false });
 
+  // ------------------------------------------------------------ lyrics for Windows media
+  async function mediaLyrics() {
+    const x = source() === 'spotify' ? null : msess();
+    if (!x || !x.title) return;
+    const id = mTrackId(x);
+    if (m.mlyrKey === id) return;
+    m.mlyrKey = id;
+    m.lyr = { trackId: id, status: 'loading', lines: [] };
+    if (m.trans.trackId !== id) m.trans = { trackId: null, lines: null, loading: false, on: !!S.config.translateLyrics };
+    Ada.render();
+    const r = await ada.call('media', 'lyrics', { id, title: x.title, artist: x.artist, album: x.album, dur: x.dur });
+    if (m.mlyrKey !== id) return;
+    const l = r.ok && r.result ? r.result : { status: 'error' };
+    m.lyr = { trackId: id, status: l.status, lines: l.lines || [] };
+    Ada.render();
+  }
+
   // ------------------------------------------------------------ register
   Ada.tab({
     id: 'music',
     label: 'Müzik',
     icon: I.note,
     pillRank: 3,
-    badge() { return player() && player().isPlaying ? '<span class="eq on mini"><i></i><i></i><i></i></span>' : ''; },
-    status() { return player() && player().isPlaying ? 'music' : 'idle'; },
-    wantsFocus() { return !!(S.music && S.music.connected && player() && player().isPlaying); },
+    badge() { return Ada.musicPlaying() ? '<span class="eq on mini" data-viz><i></i><i></i><i></i></span>' : ''; },
+    status() { return Ada.musicPlaying() ? 'music' : 'idle'; },
+    wantsFocus() { return Ada.musicPlaying(); },
     pill() {
-      const t = track();
       const p = player();
-      if (!t || !p.isPlaying) return null;
+      const t = track();
+      let cover, name, artist;
+      if (t && p.isPlaying) { cover = t.coverSmall; name = t.name; artist = t.artists; }
+      else {
+        const x = mediaList().find((y) => y.status === 'playing');
+        if (!x) return null;
+        cover = x.thumb; name = x.title || x.app; artist = x.artist || x.app;
+      }
       return {
         status: 'music',
         html: `<div class="pill music-pill">
-          ${t.coverSmall ? `<img class="mini-cover" src="${esc(t.coverSmall)}" alt="" data-morph="cover">` : '<span class="mini-cover" data-morph="cover"></span>'}
-          <span class="proj" data-morph="title" data-morph-text>${esc(t.name)}</span>
-          <span class="act" data-morph="artist" data-morph-text>${esc(t.artists)}</span>
-          <span class="eq on" aria-hidden="true"><i></i><i></i><i></i></span>
+          ${cover ? `<img class="mini-cover" src="${esc(cover)}" alt="" data-morph="cover">` : `<span class="mini-cover app-cover" data-morph="cover">${APP_ICON}</span>`}
+          <span class="proj" data-morph="title" data-morph-text>${esc(name)}</span>
+          <span class="act" data-morph="artist" data-morph-text>${esc(artist)}</span>
+          <span class="eq on" data-viz aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
           <span class="mini-prog" aria-hidden="true"><b data-live="pillfill"></b></span>
         </div>`,
       };
@@ -454,13 +588,31 @@
       if (box && document.activeElement !== box && box.value !== m.q) box.value = m.q;
     },
     onEnter() {
-      if (S.music && S.music.connected && !track() && m.sub === 'lyrics') openSub('playlists');
+      if (curSub() === 'lyrics' && source() !== 'spotify') mediaLyrics();
+      if (spConnected() && !track() && m.sub === 'lyrics' && source() === 'spotify') openSub('playlists');
     },
+    onLeave() { m.src = null; },
     onAct(a, id, el) {
       if (!a.startsWith('m:')) return false;
       const name = a.slice(2);
-      if (name === 'sub') openSub(m.sub === id && id === 'add' ? 'lyrics' : id);
-      else if (name === 'translate') translate();
+      const src = source();
+      if (src !== 'spotify' && ['toggle', 'next', 'prev'].includes(name)) {
+        ada.call('media', 'cmd', { c: name, id: src });
+        return true;
+      }
+      if (name === 'src') {
+        m.src = id;
+        if (curSub() === 'lyrics' && id !== 'spotify') mediaLyrics();
+        if (id === 'spotify') {
+          const t = track();
+          m.lyr = t ? { trackId: null, status: 'loading', lines: [] } : m.lyr;
+          if (t) ada.lyrics().then((l) => { if (l && l.trackId && source() === 'spotify') { m.lyr = { trackId: l.trackId, status: l.status, lines: l.lines || [] }; Ada.render(); } });
+        }
+        Ada.render();
+      } else if (name === 'sub') {
+        openSub(m.sub === id && id === 'add' ? 'lyrics' : id);
+        if (id === 'lyrics' && source() !== 'spotify') mediaLyrics();
+      } else if (name === 'translate') translate();
       else if (name === 'mute') ada.call('volume', 'toggleMute');
       else if (name === 'add') addTo(id);
       else if (name === 'playTrack') { play('playTrack', { uri: id, albumUri: el.dataset.album || '' }); }
@@ -471,6 +623,13 @@
       return true;
     },
     onMod(mod, v) {
+      if (mod === 'media') {
+        const x = source() === 'spotify' ? null : msess();
+        if (x) albumColor(x.thumb || null);
+        else if (!track()) albumColor(null);
+        if (x && ui.hovered && ui.tab === 'music' && curSub() === 'lyrics') mediaLyrics();
+        return;
+      }
       if (mod !== 'volume' || ui.drag) return;
       const input = Ada.$('[data-vol]');
       if (input && v && v.vol != null) {
@@ -481,6 +640,7 @@
     },
     onMusic() {
       const t = track();
+      if (source() !== 'spotify') return;
       if (t && m.lyr.trackId !== t.id) {
         m.lyr = { trackId: t.id, status: 'loading', lines: [] };
         if (m.trans.trackId !== t.id) m.trans = { trackId: null, lines: null, loading: false, on: !!S.config.translateLyrics };
@@ -495,7 +655,7 @@
       }
       m.trans.on = !!S.config.translateLyrics;
       ada.on('music:lyrics', async (l) => {
-        if (!track() || l.trackId !== track().id) return;
+        if (source() !== 'spotify' || !track() || l.trackId !== track().id) return;
         m.lyr = { trackId: l.trackId, status: l.status, lines: l.lines || [] };
         Ada.render();
         if (m.trans.on && (l.status === 'synced' || l.status === 'plain')) { m.trans.on = false; translate(); }
@@ -516,6 +676,12 @@
                  <p class="msg">${esc(ev.error || '')}</p>` });
       }
     },
-    onConfig(c) { if (c.albumColor === false) island.style.removeProperty('--album'); else if (track()) { m.albumFor = null; albumColor(track().coverSmall); } },
+    onConfig(c) {
+      if (c.albumColor === false) { island.style.removeProperty('--album'); m.albumFor = null; return; }
+      m.albumFor = null;
+      const x = source() === 'spotify' ? null : msess();
+      if (x) albumColor(x.thumb || null);
+      else if (track()) albumColor(track().coverSmall);
+    },
   });
 })();

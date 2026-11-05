@@ -5,7 +5,8 @@
   const { S, I, esc } = Ada;
   const BAUDS = [9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600];
   const COLORS = ['#5cc8c4', '#f2b544', '#9bd17a', '#f07c6b'];
-  const st = { ports: null, loading: false, port: '', baud: 115200, view: 'log', follow: true };
+  const st = { ports: null, loading: false, port: '', baud: 115200, view: 'log', follow: true, frozen: null, win: 300, hidden: new Set(), hover: null };
+  const WINDOWS = [120, 300, 600];
 
   const ser = () => S.mods.serial || { status: 'closed', lines: [], series: {} };
 
@@ -48,13 +49,31 @@
     return s.lines.map((l) => `<div class="ln ${l.kind} ${l.dir}">${l.dir === 'tx' ? '<em>›</em>' : ''}${esc(l.text)}</div>`).join('');
   }
 
+  const seriesNow = () => st.frozen || ser().series || {};
+  const fmt = (v) => (v == null || Number.isNaN(v) ? '–' : String(+Number(v).toPrecision(5)));
+
   function legendHtml() {
-    const keys = Object.keys(ser().series || {});
+    const all = seriesNow();
+    const keys = Object.keys(all);
     if (!keys.length) return '<p class="hint-l">Satırlardaki sayılar burada çizilir. Örnek: <code>temp:23.5 hum:41</code></p>';
     return keys.map((k, i) => {
-      const arr = ser().series[k];
-      return `<span class="lg"><i class="c${i}"></i>${esc(k)} <b>${+Number(arr[arr.length - 1]).toPrecision(5)}</b></span>`;
+      const arr = all[k].slice(-st.win);
+      const at = st.hover != null ? arr[Math.min(arr.length - 1, Math.round(st.hover * (arr.length - 1)))] : arr[arr.length - 1];
+      let mn = Infinity, mx = -Infinity, sum = 0;
+      for (const v of arr) { if (v < mn) mn = v; if (v > mx) mx = v; sum += v; }
+      const off = st.hidden.has(k);
+      return `<button class="lg ${off ? 'off' : ''}" data-act="s:series" data-id="${esc(k)}" title="Göster / gizle · en düşük, en yüksek, ortalama">
+        <i class="c${i}"></i>${esc(k)} <b>${fmt(at)}</b><small title="en düşük · en yüksek · ortalama">↓${fmt(mn)} ↑${fmt(mx)} ⌀${fmt(sum / arr.length)}</small></button>`;
     }).join('');
+  }
+
+  function plotBar() {
+    return `<div class="plot-bar">
+      <button class="chip ${st.frozen ? 'on' : ''}" data-act="s:freeze" title="Grafiği dondur">${st.frozen ? 'Devam' : 'Duraklat'}</button>
+      ${WINDOWS.map((w) => `<button class="chip ${st.win === w ? 'on' : ''}" data-act="s:win" data-id="${w}" title="Son ${w} ölçüm">${w}</button>`).join('')}
+      <span class="spacer"></span>
+      <button class="btn-text sm" data-act="s:csv" title="Masaüstüne CSV olarak kaydet">CSV</button>
+    </div>`;
   }
 
   function drawPlot(root) {
@@ -67,10 +86,12 @@
     const g = cv.getContext('2d');
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, w, h);
-    const series = Object.values(ser().series || {});
+    const all = seriesNow();
+    const keys = Object.keys(all);
+    const series = keys.map((k, i) => ({ k, i, a: all[k].slice(-st.win) })).filter((x) => !st.hidden.has(x.k));
     if (!series.length) return;
     let min = Infinity, max = -Infinity;
-    for (const a of series) for (const v of a) { if (v < min) min = v; if (v > max) max = v; }
+    for (const { a } of series) for (const v of a) { if (v < min) min = v; if (v > max) max = v; }
     if (min === max) { min -= 1; max += 1; }
     const pad = (max - min) * 0.08;
     min -= pad; max += pad;
@@ -81,7 +102,7 @@
     g.font = '10px "Segoe UI", system-ui';
     g.fillText(String(+max.toPrecision(4)), 4, 11);
     g.fillText(String(+min.toPrecision(4)), 4, h - 4);
-    series.forEach((a, i) => {
+    series.forEach(({ a, i }) => {
       g.strokeStyle = COLORS[i % COLORS.length];
       g.lineWidth = 1.6;
       g.beginPath();
@@ -93,7 +114,40 @@
       });
       g.stroke();
     });
+    // crosshair under the mouse
+    if (st.hover != null) {
+      const x = Math.round(st.hover * w) + 0.5;
+      g.strokeStyle = 'rgba(232,238,243,.35)';
+      g.lineWidth = 1;
+      g.setLineDash([3, 3]);
+      g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke();
+      g.setLineDash([]);
+      series.forEach(({ a, i }) => {
+        const v = a[Math.min(a.length - 1, Math.round(st.hover * (a.length - 1)))];
+        if (v == null) return;
+        const y = h - ((v - min) / (max - min)) * h;
+        g.fillStyle = COLORS[i % COLORS.length];
+        g.beginPath(); g.arc(x, y, 3, 0, Math.PI * 2); g.fill();
+      });
+    }
   }
+
+  Ada.island.addEventListener('mousemove', (e) => {
+    const cv = e.target.closest && e.target.closest('canvas[data-plot]');
+    if (!cv) return;
+    const r = cv.getBoundingClientRect();
+    st.hover = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    drawPlot(Ada.inner);
+    const lg = Ada.$('[data-region="s-legend"]');
+    if (lg) lg.innerHTML = legendHtml();
+  });
+  Ada.island.addEventListener('mouseout', (e) => {
+    if (!e.target.closest || !e.target.closest('canvas[data-plot]') || st.hover == null) return;
+    st.hover = null;
+    drawPlot(Ada.inner);
+    const lg = Ada.$('[data-region="s-legend"]');
+    if (lg) lg.innerHTML = legendHtml();
+  });
 
   function scrollLog(root) {
     const box = root.querySelector('[data-region="s-log"]');
@@ -131,7 +185,7 @@
           </div>
           ${st.view === 'log'
             ? `<div class="s-log" data-region="s-log">${logHtml()}</div>`
-            : `<div class="s-plot"><canvas data-plot="1"></canvas><div class="legend" data-region="s-legend">${legendHtml()}</div></div>`}
+            : `<div class="s-plot"><div data-region="s-pbar">${plotBar()}</div><canvas data-plot="1"></canvas><div class="legend" data-region="s-legend">${legendHtml()}</div></div>`}
           <input type="text" class="s-in" data-serial-in="1" placeholder="${s.status === 'open' ? 'Gönder (Enter)' : 'Bağlanınca buradan veri gönderebilirsin'}" spellcheck="false" autocomplete="off" aria-label="Seri porta gönder">
         </div>
       </div>`;
@@ -139,7 +193,7 @@
     after(root) { scrollLog(root); drawPlot(root); },
     tick(root, force, visible) { if (visible && st.view === 'plot' && force) drawPlot(root); },
     onEnter() { if (!st.ports) refreshPorts(); },
-    onMod(mod) { if (mod === 'serial' && st.view === 'plot') requestAnimationFrame(() => drawPlot(Ada.inner)); },
+    onMod(mod) { if (mod === 'serial' && st.view === 'plot' && !st.frozen) requestAnimationFrame(() => drawPlot(Ada.inner)); },
     onAct(a, id) {
       if (!a.startsWith('s:')) return false;
       const fn = a.slice(2);
@@ -152,7 +206,14 @@
       }
       if (fn === 'open') { st.follow = true; ada.call('serial', 'open', { port: st.port, baud: st.baud }); }
       if (fn === 'close') ada.call('serial', 'close');
-      if (fn === 'clear') ada.call('serial', 'clear');
+      if (fn === 'clear') { st.frozen = null; ada.call('serial', 'clear'); }
+      if (fn === 'freeze') { st.frozen = st.frozen ? null : JSON.parse(JSON.stringify(ser().series || {})); Ada.render(); requestAnimationFrame(() => drawPlot(Ada.inner)); }
+      if (fn === 'win') { st.win = Number(id) || 300; Ada.render(); requestAnimationFrame(() => drawPlot(Ada.inner)); }
+      if (fn === 'series') { st.hidden.has(id) ? st.hidden.delete(id) : st.hidden.add(id); Ada.render(); requestAnimationFrame(() => drawPlot(Ada.inner)); }
+      if (fn === 'csv') {
+        if (!Object.keys(ser().series || {}).length) Ada.toast({ kind: 'info', text: 'Kaydedilecek sayı yok' });
+        else ada.call('serial', 'csv').then((r) => Ada.toast(r.ok ? { kind: 'info', text: `Masaüstüne kaydedildi · ${r.result}` } : { kind: 'error', text: r.error }));
+      }
       if (fn === 'view') { st.view = id; Ada.render(); }
       return true;
     },

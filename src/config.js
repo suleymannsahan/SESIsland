@@ -17,6 +17,15 @@ const DEFAULTS = {
   sleepy: true,              // shrink and dim when nothing happens for a while
   albumColor: true,          // tint the island with the album cover's colour
   glass: true,               // frosted, translucent island
+  visualizer: true,          // live sound bars (listens to the system sound, records nothing)
+  media: true,               // show YouTube, VLC… (Windows media sessions) on the island
+  skin: 'slate',             // slate (deep blue) | black (like a phone's island)
+  accent: 'deniz',           // deniz | gok | lila | mercan | fener | yosun | pembe | windows
+  privacyDots: true,         // green / orange dot while the camera / microphone is in use
+  deviceCards: true,         // headphones connected, charger plugged in, low battery
+  quickReply: 15,            // seconds a finished Claude Code session waits for a reply from the island (0 = off)
+  calendarUrl: '',           // secret iCal address of a calendar (Google Calendar → Settings → Integrate)
+  calendarReminder: 10,      // minutes before an event; 0 = off
   shortcuts: true,
   clipboard: true,
   translateLyrics: false,

@@ -35,7 +35,7 @@ class SystemVolume extends EventEmitter {
           if (typeof j.vol === 'number' && j.vol >= 0) {
             // ignore echoes of an older value while the user is still dragging
             if (this.pendingSet != null && Date.now() - this.pendingAt < 600 && j.vol !== this.pendingSet) continue;
-            this.state = { vol: j.vol, muted: !!j.muted, available: true };
+            this.state = { vol: j.vol, muted: !!j.muted, available: true, dev: j.dev || this.state.dev || '' };
             this.emit('state', this.state);
           }
         } catch { /* partial line */ }

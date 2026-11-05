@@ -9,6 +9,7 @@ const { describeTool, permissionDetail, lastAssistantText } = require('./describ
 const STALE_MS = 30 * 60 * 1000;
 const DONE_LINGER_MS = 9000;
 const ASK_TIMEOUT_MS = 60 * 1000;
+const REPLY_MAX_MS = 68 * 1000;   // the Stop hook's curl gives up after 75 s
 
 class HookServer extends EventEmitter {
   constructor(port) {
@@ -19,6 +20,8 @@ class HookServer extends EventEmitter {
     this.seq = 0;
     this.http = null;
     this.timer = null;
+    this.replies = new Map();      // sessionId -> { res, until, started, timer }
+    this.replyWindow = 15;         // seconds a finished session waits for a reply (0 = off)
   }
 
   start() {
@@ -34,6 +37,7 @@ class HookServer extends EventEmitter {
   stop() {
     clearInterval(this.timer);
     for (const id of [...this.pending.keys()]) this.answer(id, null);
+    for (const id of [...this.replies.keys()]) this.releaseReply(id);
     if (this.http) this.http.close();
   }
 
@@ -54,7 +58,7 @@ class HookServer extends EventEmitter {
       try { ev = JSON.parse(body); } catch { res.writeHead(400); return res.end('{}'); }
       try {
         if (/[?&]wait=ask\b/.test(req.url)) return this.onAsk(ev, res);
-        this.onHook(ev, res);
+        this.onHook(ev, res, { hold: /[?&]wait=reply\b/.test(req.url) });
       } catch (e) {
         this.emit('error', e);
         if (!res.headersSent) { res.writeHead(200); res.end('{}'); }
@@ -94,9 +98,11 @@ class HookServer extends EventEmitter {
     return s;
   }
 
-  onHook(ev, res) {
+  onHook(ev, res, opts = {}) {
     const name = ev.hook_event_name;
     const s = this.session(ev);
+    // anything new from this session ends a waiting quick reply
+    if (name !== 'Stop' && name !== 'SubagentStop' && this.replies.has(s.id)) this.releaseReply(s.id);
 
     switch (name) {
       case 'SessionStart':
@@ -172,14 +178,31 @@ class HookServer extends EventEmitter {
         s.question = null;
         s.lastMessage = lastAssistantText(s.transcript) || s.lastMessage;
         s.activity = 'Tamamlandı';
-        this.emit('event', { type: 'done', sessionId: s.id, project: s.project, summary: s.lastMessage });
+        s.replyUntil = 0;
+        if (opts.hold && this.replyWindow > 0 && s.source === 'code') {
+          this.releaseReply(s.id);
+          const r = { res, started: Date.now(), until: Date.now() + this.replyWindow * 1000, timer: null };
+          r.timer = setTimeout(() => this.releaseReply(s.id), this.replyWindow * 1000);
+          this.replies.set(s.id, r);
+          res.on('close', () => {
+            if (this.replies.get(s.id) !== r) return;
+            clearTimeout(r.timer);
+            this.replies.delete(s.id);
+            s.replyUntil = 0;
+            this.push();
+          });
+          s.replyUntil = r.until;
+        }
+        this.emit('event', { type: 'done', sessionId: s.id, project: s.project, summary: s.lastMessage, replyUntil: s.replyUntil });
         clearTimeout(s.doneTimer);
         s.doneTimer = setTimeout(() => {
           if (s.status === 'done') { s.status = 'idle'; s.activity = 'Hazır'; this.push(); }
-        }, DONE_LINGER_MS);
+        }, Math.max(DONE_LINGER_MS, s.replyUntil ? s.replyUntil - Date.now() : 0));
+        if (s.replyUntil) { this.push(); return; } // answered when the reply window closes
         break;
 
       case 'SessionEnd':
+        this.releaseReply(s.id);
         this.clearPendingFor(s.id);
         this.sessions.delete(s.id);
         break;
@@ -240,6 +263,52 @@ class HookServer extends EventEmitter {
         },
       });
       if (s) { s.question = null; s.status = 'working'; s.activity = 'Yanıtın iletildi'; }
+    }
+    this.push();
+    return true;
+  }
+
+  // ------------------------------------------------------------ quick reply after Stop
+  releaseReply(sessionId) {
+    const r = this.replies.get(sessionId);
+    if (!r) return false;
+    this.replies.delete(sessionId);
+    clearTimeout(r.timer);
+    this.reply(r.res, {});
+    const s = this.sessions.get(sessionId);
+    if (s) s.replyUntil = 0;
+    this.push();
+    return true;
+  }
+
+  /** The user is typing a reply: keep the window open a while longer. Returns the new deadline. */
+  holdReply(sessionId) {
+    const r = this.replies.get(sessionId);
+    if (!r) return 0;
+    r.until = Math.min(r.started + REPLY_MAX_MS, Date.now() + 60 * 1000);
+    clearTimeout(r.timer);
+    r.timer = setTimeout(() => this.releaseReply(sessionId), Math.max(0, r.until - Date.now()));
+    const s = this.sessions.get(sessionId);
+    if (s) s.replyUntil = r.until;
+    this.push();
+    return r.until;
+  }
+
+  /** Sends Claude back to work with the user's text (the Stop hook blocks with it as the reason). */
+  sendReply(sessionId, text) {
+    const r = this.replies.get(sessionId);
+    const msg = String(text || '').trim().slice(0, 4000);
+    if (!r || !msg) return false;
+    this.replies.delete(sessionId);
+    clearTimeout(r.timer);
+    this.reply(r.res, { decision: 'block', reason: `Kullanıcı Ada üzerinden yanıt verdi: ${msg}` });
+    const s = this.sessions.get(sessionId);
+    if (s) {
+      clearTimeout(s.doneTimer);
+      s.status = 'working';
+      s.activity = 'Yanıtın iletildi';
+      s.prompt = msg.slice(0, 200);
+      s.replyUntil = 0;
     }
     this.push();
     return true;
