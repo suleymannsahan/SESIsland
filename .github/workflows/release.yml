@@ -1,5 +1,5 @@
 # Builds the Windows installer and zip when a version tag (v1.2.3) is pushed,
-# and attaches them to a GitHub Release. Ada's update check reads that release.
+# runs the tests first, and attaches them to a GitHub Release with notes from CHANGELOG.md. Ada's update check reads that release.
 name: release
 
 on:
@@ -20,10 +20,14 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - run: npm test
       - run: npx electron-builder --win nsis zip --x64 --publish never
       # a copy with a fixed name, so the README's download button always gets the latest installer
       - run: Copy-Item (Get-ChildItem dist/Ada-Setup-*.exe | Select-Object -First 1).FullName dist/Ada-Setup.exe
         shell: pwsh
+      # release notes come from the matching CHANGELOG.md section
+      - run: node .github/scripts/release-notes.js ${{ github.ref_name }} > release-notes.md
+        if: startsWith(github.ref, 'refs/tags/')
       - uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
@@ -31,4 +35,5 @@ jobs:
             dist/Ada-Setup.exe
             dist/Ada-Setup-*.exe
             dist/Ada-*-win.zip
+          body_path: release-notes.md
           generate_release_notes: true

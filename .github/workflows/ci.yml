@@ -1,0 +1,26 @@
+# Runs the unit tests and a syntax check on every push and pull request.
+name: test
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Sözdizimi kontrolü
+        run: for f in $(git ls-files 'src/*.js' 'src/**/*.js' 'test/*.js'); do node --check "$f" || exit 1; done
+      - run: npm test
