@@ -10,7 +10,8 @@
   "homepage": "https://github.com/suleymannsahan/SESIsland",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win nsis zip --x64"
+    "dist": "electron-builder --win nsis zip --x64",
+    "test": "node --test"
   },
   "devDependencies": {
     "electron": "^33.2.0",
