@@ -1,0 +1,57 @@
+name: Hata bildir
+description: Ada'da bir şey beklendiği gibi çalışmıyor
+labels: ['hata']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bildirdiğin için teşekkürler! Önce README'deki [Sorun giderme](https://github.com/suleymannsahan/SESIsland#sorun-giderme) bölümüne bakmak hızlı bir çözüm getirebilir.
+  - type: input
+    id: version
+    attributes:
+      label: Ada sürümü
+      description: Tepsi simgesine sağ tık → Ayarlar… penceresinin başlığında yazar (Ada x.y.z).
+      placeholder: '0.6.0'
+    validations:
+      required: true
+  - type: dropdown
+    id: windows
+    attributes:
+      label: Windows sürümü
+      options: ['Windows 11', 'Windows 10', 'Diğer']
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Hangi bölüm?
+      options: ['Claude (Code / Desktop)', 'Müzik / Spotify', 'Odak / Pomodoro', 'Ders / Takvim', 'Araçlar', 'Seri port', 'Sistem', 'Raf', 'Görünüm / animasyon', 'Kurulum / güncelleme', 'Diğer']
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: Ne oldu, ne bekliyordun?
+      placeholder: 'Claude izin istediğinde adada kart çıkmıyor, terminalde soruyor.'
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Nasıl tekrarlanır?
+      placeholder: |
+        1. ...
+        2. ...
+  - type: textarea
+    id: report
+    attributes:
+      label: Tanı raporu
+      description: |
+        Tepsi simgesine sağ tık → **Sorun giderme → Tanı raporu oluştur**. Masaüstüne `ada-tani.txt` yazılır; dosyayı buraya sürükle ya da içeriğini yapıştır.
+        Raporda pencere durumu ve son olaylar bulunur; Spotify anahtarın ya da şifren yoktur. Yine de paylaşmadan önce göz at.
+      render: text
+  - type: textarea
+    id: screens
+    attributes:
+      label: Ekran görüntüsü / video
+      description: Varsa buraya sürükle.

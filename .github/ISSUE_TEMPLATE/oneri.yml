@@ -1,0 +1,22 @@
+name: Özellik öner
+description: Ada'ya eklenmesini istediğin bir şey
+labels: ['öneri']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Ne yapmak istiyorsun?
+      description: Çözmek istediğin durumu anlat; nasıl yapılacağını bilmen gerekmez.
+      placeholder: 'Ders başlamadan önce adada sınıfın da yazsın istiyorum.'
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Nasıl görünebilir?
+      description: Varsa çizim, ekran görüntüsü ya da başka bir uygulamadan örnek.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Hangi bölüm?
+      options: ['Claude', 'Müzik', 'Odak', 'Ders', 'Araçlar', 'Seri port', 'Sistem', 'Raf', 'Görünüm', 'Yeni bir sekme', 'Diğer']
