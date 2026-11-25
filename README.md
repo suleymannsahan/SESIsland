@@ -196,7 +196,7 @@ Dosyaları adanın üstüne sürükleyip bırak; Ada onları rafta tutar. Sonra 
 - **Olay animasyonları:** iş bitince ışık halkası ve parlama, Pomodoro bitince konfeti, izin beklerken amber nabız.
 - **Tema:** gece mavisi ya da tamamen siyah ada, 7 vurgu rengi ya da Windows'un kendi rengi, Kompakt / Normal / Büyük boyut.
 - **Fener:** gece yıldızlar ve ay, sabah güneş doğar, sınavdan önceki gün terler, uyurken "z" çıkarır; yağmurda, karda, fırtınada hava da fenerde.
-- **Sürükle:** adanın boş bir yerinden tutup ekranın üstünde sağa sola taşı. Birden fazla ekranın varsa Ayarlar → Ekran → **İmlecin olduğu ekran** seçeneğiyle ada farenin olduğu ekrana geçer.
+- **Birden fazla ekran:** Ayarlar → Ekran → **İmlecin olduğu ekran** seçeneğiyle ada farenin olduğu ekrana geçer.
 - **Tek tıkla güncelleme:** yeni sürüm çıkınca adada kart belirir; **Güncelle**'ye basınca Ada indirir, doğrular, kurar ve yeniden açılır.
 
 ## 🧩 Eklentiler

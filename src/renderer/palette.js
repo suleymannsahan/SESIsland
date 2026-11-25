@@ -53,7 +53,6 @@
       { title: 'Renk seç (ekrandan)', keys: 'renk sec renk secici color picker hex', icon: 'color', run: () => ada.call('picker', 'color') },
       { title: 'Panodaki metni QR kod yap', keys: 'qr karekod qr kod', icon: 'qr', run: () => ada.call('qr', 'make', '') },
       { title: 'Hava durumu', keys: 'hava durumu weather sicaklik', icon: 'weather', run: () => Ada.openTab('system') },
-      { title: 'Adayı ortaya al', keys: 'ortala ortaya al konum center', icon: 'cog', run: () => ada.call('palette', 'set', { dragX: 0 }) },
       { title: 'Adayı gizle', keys: 'gizle hide sakla', icon: 'cog', run: () => ada.call('palette', 'hide') },
       { title: 'Tanı raporu oluştur', keys: 'tani raporu sorun giderme diagnostics', icon: 'cog', run: () => ada.call('palette', 'diag') },
       { title: 'Güncellemeleri denetle', keys: 'guncelleme update surum', icon: 'cog', run: () => ada.call('update', 'check').then((r) => Ada.toast({ kind: 'info', text: r.ok && r.result && r.result.version ? `Ada ${r.result.version} hazır` : 'En son sürümü kullanıyorsun' })) },

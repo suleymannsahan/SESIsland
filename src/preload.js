@@ -26,7 +26,6 @@ contextBridge.exposeInMainWorld('ada', {
   lyrics: () => ipcRenderer.invoke('music:lyrics'),
   translate: () => ipcRenderer.invoke('music:translate'),
   vizSource: () => ipcRenderer.invoke('viz:source'),
-  drag: (phase) => ipcRenderer.send('island:drag', phase),
   // shelf
   pathFor: (file) => { try { return webUtils.getPathForFile(file); } catch { return ''; } },
   shelfDrag: (paths) => ipcRenderer.send('shelf:drag', paths),

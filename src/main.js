@@ -139,13 +139,6 @@ function targetDisplay() {
   return screen.getPrimaryDisplay();
 }
 
-// dragX: how far the island was dragged sideways from the middle (DIP), kept on screen
-function clampDrag(dx, workArea, w) {
-  const room = Math.max(0, workArea.width / 2 - 70);
-  return Math.max(-room, Math.min(room, Math.round(Number(dx) || 0)));
-  // (the window is wider than the island; only the island's middle must stay on screen)
-}
-
 function bounds() {
   const cfg = config.get();
   const scale = Math.max(0.8, Math.min(1.3, Number(cfg.scale) || 1));
@@ -155,40 +148,9 @@ function bounds() {
   let x = workArea.x + (workArea.width - w) / 2;
   if (cfg.position === 'left') x = workArea.x + 8;
   if (cfg.position === 'right') x = workArea.x + workArea.width - w - 8;
-  if (cfg.position === 'center' && cfg.dragX) x += clampDrag(cfg.dragX, workArea, w);
   return { x: Math.round(x), y: workArea.y, width: w, height: h, scale };
 }
 
-// ---- dragging the island sideways along the top of the screen
-let dragging = null;   // { anchor, y }
-ipcMain.on('island:drag', (_e, phase) => {
-  if (!win || win.isDestroyed()) return;
-  if (phase === 'start') {
-    const p = screen.getCursorScreenPoint();
-    const b = win.getBounds();
-    dragging = { anchor: p.x - b.x, y: b.y };
-    diag('drag', 'start');
-  } else if (phase === 'end' && dragging) {
-    dragging = null;
-    const b = win.getBounds();
-    const cfg = config.get();
-    const { workArea } = targetDisplay();
-    const centered = workArea.x + (workArea.width - b.width) / 2;
-    const dragX = clampDrag(b.x - centered, workArea, b.width);
-    // snap back to the middle when it is close
-    config.set({ position: 'center', dragX: Math.abs(dragX) < 24 ? 0 : dragX });
-    if (cfg.position !== 'center' || Math.abs(dragX) < 24) placeWindow();
-    if (winctl) winctl.restartWatch(adaPoint());
-    diag('drag', dragX);
-  }
-});
-function dragStep(p) {
-  const { workArea } = targetDisplay();
-  const b = win.getBounds();
-  const centered = workArea.x + (workArea.width - b.width) / 2;
-  const x = centered + clampDrag(p.x - dragging.anchor - centered, workArea, b.width);
-  if (x !== b.x) win.setPosition(Math.round(x), dragging.y);
-}
 
 function createWindow() {
   const b = bounds();
@@ -1108,7 +1070,6 @@ function startPointerWatch() {
   pointerTimer = setInterval(() => {
     if (!win || win.isDestroyed() || !win.isVisible() || !islandRect) return;
     const p = screen.getCursorScreenPoint();
-    if (dragging) { dragStep(p); return setPointer(true); }
     if (holdPointer) return setPointer(true);
     followCursorScreen(p);
     const b = win.getBounds();
@@ -1502,7 +1463,7 @@ const SETTABLE = {
   albumColor: 'bool', glass: 'bool', visualizer: 'bool', media: 'bool', shortcuts: 'bool', clipboard: 'bool', translateLyrics: 'bool',
   weatherRest: 'bool', autoUpdate: 'bool', lowBattery: 'int', privacyDots: 'bool', deviceCards: 'bool', quickReply: 'int', calendarUrl: 'url', calendarReminder: 'int',
   skin: ['slate', 'black'], accent: ['deniz', 'gok', 'lila', 'mercan', 'fener', 'yosun', 'pembe', 'windows'],
-  position: ['center', 'left', 'right'], display: 'display', dragX: 'drag', scale: 'num', summaryTime: 'hm', classReminder: 'int', updateRepo: 'repo',
+  position: ['center', 'left', 'right'], display: 'display', scale: 'num', summaryTime: 'hm', classReminder: 'int', updateRepo: 'repo',
 };
 
 function applySettings(patch) {
@@ -1513,7 +1474,6 @@ function applySettings(patch) {
     if (t === 'bool') clean[k] = !!v;
     else if (t === 'int') clean[k] = Math.max(0, Math.round(Number(v) || 0));
     else if (t === 'display') clean[k] = Math.max(-1, Math.round(Number(v) || 0));
-    else if (t === 'drag') clean[k] = Math.max(-5000, Math.min(5000, Math.round(Number(v) || 0)));
     else if (t === 'num') clean[k] = Math.max(0.8, Math.min(1.3, Number(v) || 1));
     else if (t === 'hm') clean[k] = /^\d{1,2}:\d{2}$/.test(v) || v === '' ? v : config.get()[k];
     else if (t === 'repo') clean[k] = /^[\w.-]+\/[\w.-]+$/.test(v) || v === '' ? v : config.get()[k];
@@ -1535,8 +1495,7 @@ function applySettings(patch) {
   }
   if ('media' in clean) clean.media ? media.start() : (media.stop(), media.state = { available: false, current: '', sessions: [] }, media.push());
   if ('display' in clean) followDisplay = null;
-  if ('position' in clean && clean.position !== 'center') config.set({ dragX: 0 });
-  if ('position' in clean || 'display' in clean || 'scale' in clean || 'dragX' in clean) placeWindow();
+  if ('position' in clean || 'display' in clean || 'scale' in clean) placeWindow();
   if ('updateRepo' in clean) { updater.setRepo(clean.updateRepo); updater.start(); }
   if ('loginAtStart' in (patch || {})) app.setLoginItemSettings({ openAtLogin: !!patch.loginAtStart });
   send('island:config', publicConfig());

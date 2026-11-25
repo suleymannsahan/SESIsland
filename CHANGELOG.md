@@ -6,6 +6,11 @@ Her sürüm etiketinde GitHub Actions bu dosyadaki ilgili bölümü sürüm notl
 
 ## [Yayınlanmamış]
 
+## [0.7.4] - 2026-11-25
+
+### Kaldırıldı
+- Adayı sürükleyerek taşıma. Ada yine ekranın üst ortasında (ya da Ayarlar'da seçilen solda / sağda) durur; daha önce taşındıysa yerine döner.
+
 ## [0.7.3] - 2026-11-25
 
 ### Eklendi

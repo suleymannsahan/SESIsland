@@ -27,7 +27,6 @@ const DEFAULTS = {
   quickReply: 15,            // seconds a finished Claude Code session waits for a reply from the island (0 = off)
   autoUpdate: true,          // a downloaded update installs by itself when Ada closes
   pluginsEnabled: {},        // { <plugin id>: true } — plugins run only after being turned on
-  dragX: 0,                  // sideways offset after dragging the island (DIP from the middle)
   weatherPlace: null,        // { name, admin, country, lat, lon } chosen in Settings
   weatherRest: true,         // temperature next to the lighthouse
   calendarUrl: '',           // secret iCal address of a calendar (Google Calendar → Settings → Integrate)
@@ -63,6 +62,7 @@ function load(dir) {
   try {
     const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
     if (!raw.updateRepo) delete raw.updateRepo; // older versions saved it empty
+    delete raw.dragX;                           // dragging the island was taken out in 0.7.4
     // Patterns saved by an older version are dropped so new defaults take effect.
     const userPatterns = raw.patternsVersion === DEFAULTS.patternsVersion ? (raw.desktopPatterns || {}) : {};
     data = { ...DEFAULTS, ...raw, patternsVersion: DEFAULTS.patternsVersion, desktopPatterns: { ...DEFAULTS.desktopPatterns, ...userPatterns } };

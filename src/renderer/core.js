@@ -793,37 +793,6 @@
   setInterval(reportRect, 100);
   Ada.afterPointerAction = () => { ada.hold(ui.drag || ui.holdOpen); if (!ui.pointer && !ui.holdOpen) closePanel(); };
 
-  // ------------------------------------------------------------ drag the island sideways
-  // Hold an empty part of the island and move the mouse: the window follows along the top edge.
-  const NODRAG = 'button, input, textarea, select, a, [data-act]:not(.fener), [data-seek], [data-vol], canvas, [draggable="true"], .lyrics, .pal-list, .sh-grid, .hist, .rows, .list, .tms, .laps';
-  let dragTry = null;
-  island.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0 || e.target.closest(NODRAG)) return;
-    dragTry = { x: e.screenX, id: e.pointerId, on: false };
-  }, true);
-  window.addEventListener('pointermove', (e) => {
-    if (!dragTry || dragTry.on || Math.abs(e.screenX - dragTry.x) < 7) return;
-    dragTry.on = true;
-    ui.drag = true;
-    island.classList.add('moving');
-    ada.hold(true);
-    ada.drag('start');
-    try { island.setPointerCapture(dragTry.id); } catch { /* not capturable */ }
-  });
-  const endDrag = () => {
-    if (!dragTry) return;
-    const was = dragTry.on;
-    dragTry = null;
-    if (!was) return;
-    ada.drag('end');
-    island.classList.remove('moving');
-    ui.drag = false;
-    ada.hold(false);
-    render();
-  };
-  window.addEventListener('pointerup', endDrag);
-  window.addEventListener('pointercancel', endDrag);
-
   // Inputs: make the window focusable only while typing.
   island.addEventListener('mousedown', (e) => {
     const field = e.target.closest('input[type="text"], input[type="search"], textarea');

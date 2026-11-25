@@ -196,7 +196,7 @@ Drag files onto the island and Ada keeps them on the shelf. Later, drag them fro
 - **Event animations:** a light ring and glow when a job is done, confetti when a Pomodoro ends, an amber pulse while a permission is waiting.
 - **Theme:** midnight blue or pure black island, 7 accent colours or Windows' own accent, Compact / Normal / Large size.
 - **Lighthouse:** stars and a moon at night, the sun rises in the morning, it sweats the day before an exam and puffs "z"s while asleep; rain, snow and storms show on it too.
-- **Drag:** hold an empty part of the island and move it along the top of the screen. With several monitors, Settings → Screen → **the screen with the cursor** makes the island follow the mouse.
+- **Several monitors:** Settings → Screen → **the screen with the cursor** makes the island follow the mouse.
 - **One-click updates:** when a new version is out a card appears; **Update** downloads it, checks it, installs it and restarts Ada.
 
 ## 🧩 Plugins

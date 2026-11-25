@@ -1069,10 +1069,6 @@ input.bad { border-color: rgba(240, 124, 107, .6) !important; }
 .up-n { font-size: 11px; color: var(--mist); font-variant-numeric: tabular-nums; }
 .up-bar { grid-column: 1 / -1; height: 3px; border-radius: 2px; background: rgba(232, 238, 243, .08); }
 .up-bar b { display: block; height: 100%; border-radius: 2px; background: var(--lila); }
-
-/* =================================================================== 0.7: dragging */
-#island.moving { cursor: grabbing; transform: scale(1.02); transition: transform .15s ease; }
-#island.moving * { cursor: grabbing !important; }
 /* more tabs than fit (plugins): the rail scrolls */
 .rail { overflow-y: auto; scrollbar-width: none; }
 .rail::-webkit-scrollbar { display: none; }

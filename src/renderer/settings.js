@@ -166,10 +166,6 @@
   });
   document.querySelectorAll('input[name="position"]').forEach((r) => r.addEventListener('change', (e) => set({ position: e.target.value })));
   $('opt-display').addEventListener('change', (e) => set({ display: Number(e.target.value) }));
-  $('center-island').addEventListener('click', () => {
-    set({ position: 'center', dragX: 0 });
-    document.querySelectorAll('input[name="position"]').forEach((r) => { r.checked = r.value === 'center'; });
-  });
   function syncSize(v) {
     $('scale-v').textContent = `%${Math.round(v * 100)}`;
     document.querySelectorAll('input[name="size"]').forEach((r) => { r.checked = Math.abs(Number(r.value) - v) < 0.01; });
