@@ -1,7 +1,7 @@
 'use strict';
 const {
   app, BrowserWindow, ipcMain, screen, Tray, Menu, Notification, nativeImage, shell, safeStorage, globalShortcut, clipboard,
-  desktopCapturer, session, systemPreferences, net, protocol,
+  desktopCapturer, session, systemPreferences, net, protocol, powerMonitor,
 } = require('electron');
 const { pathToFileURL } = require('url');
 const path = require('path');
@@ -60,6 +60,46 @@ let winctl = null;
 let usage = null;
 let updater = null;
 let updateBusy = false;
+let updateReady = null;     // { version, file } downloaded in the background and checked
+let notifiedVersion = '';
+
+// Download a new version quietly as soon as it is found, so "Güncelle" installs at once.
+async function predownload(u) {
+  if (process.platform !== 'win32' || !u.installer || config.get().autoUpdate === false) return;
+  if (updateBusy || (updateReady && updateReady.version === u.version)) return;
+  updateBusy = true;
+  try {
+    const file = await downloadUpdate(u, path.join(app.getPath('temp'), 'ada-update'), {
+      fetch: (...a) => net.fetch(...a),
+      // "Güncelle" was pressed while this was still downloading: show how far it is
+      onProgress: (pct) => { if (installWhenReady) mod('update', { ...u, stage: 'downloading', pct }); },
+    });
+    updateReady = { version: u.version, file };
+    updater.latest = { ...u, file };
+    diag('update', `hazır ${u.version}`);
+    if (installWhenReady) {
+      mod('update', { ...u, stage: 'installing' });
+      installingNow = true;
+      setTimeout(() => { runInstaller(file, true); app.quit(); }, 800);
+    } else {
+      mod('update', { ...u, stage: 'ready' });
+    }
+  } catch (e) {
+    diag('update', `arka planda inmedi: ${e.message}`);
+    if (installWhenReady) mod('update', { ...u, stage: 'error', error: e.message });
+    installWhenReady = false;
+  } finally {
+    updateBusy = false;
+  }
+}
+let installWhenReady = false;
+
+function runInstaller(file, restart) {
+  config.set({ updatedFrom: app.getVersion() });
+  // NSIS: /S = silent, --force-run = start Ada again when done
+  require('child_process').spawn(file, restart ? ['/S', '--force-run'] : ['/S'], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+}
+let installingNow = false;
 let schedule = null;
 let notes = null;
 let minuteTimer = null;
@@ -688,10 +728,18 @@ function setupModules() {
   updater = new Updater(app.getVersion(), { fetch: (...a) => net.fetch(...a) });
   updater.setRepo(config.get().updateRepo);
   updater.on('available', (u) => {
+    // the hourly check finds the same version again: tell the island once, keep the downloaded file
+    if (updateReady && updateReady.version === u.version) { updater.latest = { ...u, file: updateReady.file }; return; }
     mod('update', u);
-    send('island:event', { type: 'update', summary: `Ada ${u.version} hazır`, ...u });
+    if (notifiedVersion !== u.version) {
+      notifiedVersion = u.version;
+      send('island:event', { type: 'update', summary: `Ada ${u.version} hazır`, ...u });
+    }
+    predownload(u);
   });
   updater.start();
+  // after sleep the hourly timer may be far behind: look again shortly after waking up
+  try { powerMonitor.on('resume', () => setTimeout(() => updater.check().catch(() => {}), 30 * 1000)); } catch { /* not on this OS */ }
   // just updated by the island: say so once
   const from = config.get().updatedFrom;
   if (from && newer(app.getVersion(), from)) {
@@ -1346,9 +1394,18 @@ const CALLS = {
       const u = updater.latest;
       if (!u) return { error: 'Yeni sürüm bilgisi yok' };
       if (process.platform !== 'win32' || !u.installer) { shell.openExternal(u.url); return { opened: true }; }
-      if (updateBusy) return { busy: true };
-      updateBusy = true;
       const push = (st) => mod('update', { ...u, ...st });
+      // already downloaded in the background: install right away
+      if (updateReady && updateReady.version === u.version && fs.existsSync(updateReady.file)) {
+        push({ stage: 'installing' });
+        installingNow = true;
+        diag('update', `kuruluyor ${u.version}`);
+        setTimeout(() => { runInstaller(updateReady.file, true); app.quit(); }, 800);
+        return { installing: true };
+      }
+      // the background download is still running: finish it, then install
+      if (updateBusy) { installWhenReady = true; push({ stage: 'downloading', pct: 0 }); return { waiting: true }; }
+      updateBusy = true;
       push({ stage: 'downloading', pct: 0 });
       try {
         const file = await downloadUpdate(u, path.join(app.getPath('temp'), 'ada-update'), {
@@ -1356,13 +1413,9 @@ const CALLS = {
           onProgress: (pct) => push({ stage: 'downloading', pct }),
         });
         push({ stage: 'installing' });
-        config.set({ updatedFrom: app.getVersion() });
+        installingNow = true;
         diag('update', `kuruluyor ${u.version}`);
-        setTimeout(() => {
-          // NSIS: /S = silent, --force-run = start Ada again when done
-          require('child_process').spawn(file, ['/S', '--force-run'], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
-          app.quit();
-        }, 1200);
+        setTimeout(() => { runInstaller(file, true); app.quit(); }, 1200);
         return { installing: true };
       } catch (e) {
         updateBusy = false;
@@ -1401,7 +1454,7 @@ ipcMain.handle('settings:get', () => ({
 const SETTABLE = {
   sound: 'bool', notifications: 'bool', desktopWatcher: 'bool', hideFullscreen: 'bool', sleepy: 'bool',
   albumColor: 'bool', glass: 'bool', visualizer: 'bool', media: 'bool', shortcuts: 'bool', clipboard: 'bool', translateLyrics: 'bool',
-  weatherRest: 'bool', privacyDots: 'bool', deviceCards: 'bool', quickReply: 'int', calendarUrl: 'url', calendarReminder: 'int',
+  weatherRest: 'bool', autoUpdate: 'bool', privacyDots: 'bool', deviceCards: 'bool', quickReply: 'int', calendarUrl: 'url', calendarReminder: 'int',
   skin: ['slate', 'black'], accent: ['deniz', 'gok', 'lila', 'mercan', 'fener', 'yosun', 'pembe', 'windows'],
   position: ['center', 'left', 'right'], display: 'display', dragX: 'drag', scale: 'num', summaryTime: 'hm', classReminder: 'int', updateRepo: 'repo',
 };
@@ -1538,6 +1591,11 @@ app.on('window-all-closed', (e) => e.preventDefault());
 app.on('will-quit', () => globalShortcut.unregisterAll());
 
 app.on('before-quit', () => {
+  // a downloaded update goes in quietly when Ada closes (next start is the new version)
+  if (!installingNow && updateReady && config.get().autoUpdate !== false && fs.existsSync(updateReady.file)) {
+    installingNow = true;
+    try { runInstaller(updateReady.file, false); } catch { /* try again next time */ }
+  }
   clearInterval(minuteTimer);
   clearInterval(pointerTimer);
   if (spotify) { spotify.stop(); spotify.closeAuthServer(); }

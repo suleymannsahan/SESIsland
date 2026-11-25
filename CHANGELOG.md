@@ -6,6 +6,14 @@ Her sürüm etiketinde GitHub Actions bu dosyadaki ilgili bölümü sürüm notl
 
 ## [Yayınlanmamış]
 
+## [0.7.1] - 2026-11-25
+
+### Değişti
+- **Güncellemeler daha hızlı gelir:** Ada yeni sürümü 6 saatte bir yerine açılıştan 15 saniye sonra ve saatte bir kontrol eder; bilgisayar uykudan uyanınca da hemen bakar.
+- **Arka planda indirme:** yeni sürüm bulununca Ada onu sessizce indirip doğrular; **Güncelle**'ye basınca beklemeden kurulur. Basmazsan Ada kapanırken kendiliğinden kurulur (Ayarlar → Güncellemeler'den kapatılabilir).
+- Aynı sürüm için kart bir kez çıkar.
+- Sürüm derlemesi Electron ve NSIS dosyalarını önbellekten alır.
+
 ## [0.7.0] - 2026-11-25
 
 ### Eklendi

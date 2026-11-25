@@ -533,7 +533,7 @@
       return `${head('güncellenemedi')}<p class="msg">${esc(u.error || '')}</p>
         <div class="actions"><button class="btn-allow sm" data-act="updateInstall">Tekrar dene</button><button class="btn-text sm" data-act="updateOpen">Tarayıcıda indir</button><button class="btn-text sm" data-act="closeCard">Kapat</button></div>`;
     }
-    return `${head('yeni sürüm hazır')}
+    return `${head(u.stage === 'ready' ? 'indirildi, kurulmaya hazır' : 'yeni sürüm hazır')}
       ${u.notes ? `<p class="msg">${esc(u.notes)}</p>` : ''}
       <div class="actions"><button class="btn-allow" data-act="updateInstall">Güncelle</button><button class="btn-text" data-act="updatePage">Yenilikler</button><button class="btn-text" data-act="closeCard">Sonra</button></div>`;
   }

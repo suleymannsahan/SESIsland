@@ -41,11 +41,12 @@ class Updater extends EventEmitter {
   start() {
     this.stop();
     if (!this.repo) return;
+    // soon after start, then every hour (GitHub allows 60 unauthenticated checks an hour per IP)
     const tick = async () => {
       await this.check().catch(() => {});
-      this.timer = setTimeout(tick, 6 * 60 * 60 * 1000);
+      this.timer = setTimeout(tick, 60 * 60 * 1000);
     };
-    this.timer = setTimeout(tick, 20 * 1000);
+    this.timer = setTimeout(tick, 15 * 1000);
   }
 
   stop() { clearTimeout(this.timer); }

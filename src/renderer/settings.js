@@ -158,7 +158,7 @@
 
   // ------------------------------------------------------------ simple options
   const set = (patch) => ada.setSettings(patch);
-  ['sound', 'notifications', 'desktopWatcher', 'loginAtStart', 'hideFullscreen', 'sleepy', 'glass', 'albumColor', 'shortcuts', 'clipboard', 'translateLyrics', 'visualizer', 'privacyDots', 'deviceCards', 'media', 'weatherRest'].forEach((k) => {
+  ['sound', 'notifications', 'desktopWatcher', 'loginAtStart', 'hideFullscreen', 'sleepy', 'glass', 'albumColor', 'shortcuts', 'clipboard', 'translateLyrics', 'visualizer', 'privacyDots', 'deviceCards', 'media', 'weatherRest', 'autoUpdate'].forEach((k) => {
     $('opt-' + k).addEventListener('change', async (e) => {
       await set({ [k]: e.target.checked });
       if (k === 'shortcuts') refreshShortcuts();
@@ -302,7 +302,7 @@
     schedule = JSON.parse(JSON.stringify(s.schedule || { classes: [], exams: [] }));
     renderClasses();
     renderExams();
-    ['sound', 'notifications', 'desktopWatcher', 'hideFullscreen', 'sleepy', 'glass', 'albumColor', 'shortcuts', 'clipboard', 'translateLyrics', 'visualizer', 'privacyDots', 'deviceCards', 'media', 'weatherRest'].forEach((k) => { $('opt-' + k).checked = c[k] !== false && !!(c[k] ?? true); });
+    ['sound', 'notifications', 'desktopWatcher', 'hideFullscreen', 'sleepy', 'glass', 'albumColor', 'shortcuts', 'clipboard', 'translateLyrics', 'visualizer', 'privacyDots', 'deviceCards', 'media', 'weatherRest', 'autoUpdate'].forEach((k) => { $('opt-' + k).checked = c[k] !== false && !!(c[k] ?? true); });
     document.querySelectorAll('input[name="skin"]').forEach((r) => { r.checked = r.value === (c.skin || 'slate'); });
     document.querySelectorAll('input[name="accent"]').forEach((r) => { r.checked = r.value === (c.accent || 'deniz'); });
     if (c.systemAccent) document.querySelector('.sw-windows').style.background = '#' + c.systemAccent.slice(0, 6);
