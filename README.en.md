@@ -192,7 +192,7 @@ Drag files onto the island and Ada keeps them on the shelf. Later, drag them fro
 ## ✨ Small touches
 
 - **Camera / microphone dot:** a green dot while an app uses the camera, orange for the microphone (hover to see which app).
-- **Devices:** a short card when Bluetooth headphones connect (with battery level if Windows knows it), when the charger is plugged in or out, and when the battery drops to 20%, 10% and 5%.
+- **Devices:** when Bluetooth headphones, a mouse, keyboard, game controller, phone or a USB drive connects, the collapsed island shows its name and, if it has one, its battery. When a device's or the laptop's battery drops below the level you choose (Settings → Appearance), you get a warning.
 - **Event animations:** a light ring and glow when a job is done, confetti when a Pomodoro ends, an amber pulse while a permission is waiting.
 - **Theme:** midnight blue or pure black island, 7 accent colours or Windows' own accent, Compact / Normal / Large size.
 - **Lighthouse:** stars and a moon at night, the sun rises in the morning, it sweats the day before an exam and puffs "z"s while asleep; rain, snow and storms show on it too.

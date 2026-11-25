@@ -186,6 +186,7 @@
   $('opt-classReminder').addEventListener('change', (e) => set({ classReminder: Number(e.target.value) }));
   $('opt-calendarReminder').addEventListener('change', (e) => set({ calendarReminder: Number(e.target.value) }));
   $('opt-quickReply').addEventListener('change', (e) => set({ quickReply: Number(e.target.value) }));
+  $('opt-lowBattery').addEventListener('change', (e) => set({ lowBattery: Number(e.target.value) }));
   async function saveCalendar() {
     const v = $('opt-calendarUrl').value.trim();
     if (v && !/^(https|webcal):\/\//i.test(v)) { msg($('cal-msg'), 'Adres https:// ile başlamalı.', 'err'); return; }
@@ -317,6 +318,7 @@
     $('scale-v').textContent = `%${Math.round((c.scale || 1) * 100)}`;
     $('opt-classReminder').value = String(c.classReminder ?? 10);
     $('opt-calendarReminder').value = String(c.calendarReminder ?? 10);
+    $('opt-lowBattery').value = String([0, 10, 15, 20, 30].includes(Number(c.lowBattery)) ? Number(c.lowBattery) : 20);
     $('opt-quickReply').value = String([0, 8, 15, 30].includes(Number(c.quickReply)) ? Number(c.quickReply) : 15);
     $('opt-calendarUrl').value = c.calendarUrl || '';
     calBadge(!!c.calendarUrl);

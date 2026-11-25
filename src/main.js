@@ -33,6 +33,7 @@ const { Apps } = require('./apps');
 const { Weather } = require('./weather');
 const { TokenStats } = require('./tokens');
 const { Plugins } = require('./plugins');
+const { Devices } = require('./devices');
 
 // plugin files are served to the island from their own folder only (see plugins.js)
 protocol.registerSchemesAsPrivileged([{ scheme: 'ada-plugin', privileges: { standard: true, secure: true } }]);
@@ -113,6 +114,8 @@ let apps = null;
 let weather = null;
 let tokens = null;
 let plugins = null;
+let devices = null;
+let lastBtConnect = 0;
 let usageHist = null;
 let privacyState = { cam: [], mic: [] };
 let launching = null;     // { name, arg, startedAt } while Spotify is being opened
@@ -644,6 +647,8 @@ function btBattery(name) {
 
 async function onAudioDevice(full) {
   if (config.get().deviceCards === false) return;
+  // Bluetooth headphones already got their own "connected" pill a moment ago
+  if (Date.now() - lastBtConnect < 12000) return;
   const headphones = HEADPHONES.test(full);
   const name = headphones ? shortDeviceName(full) : full;
   const battery = headphones ? await btBattery(name) : null;
@@ -785,6 +790,21 @@ function setupModules() {
     if (v.dev && lastDev !== null && v.dev !== lastDev) onAudioDevice(v.dev);
     if (v.dev) lastDev = v.dev;
   });
+
+  // Bluetooth devices and USB drives: a pill when they come and go, a warning when a battery runs low
+  devices = new Devices(scriptsDir(), { threshold: () => Number(config.get().lowBattery) || 0 });
+  devices.on('state', (st) => mod('devices', st));
+  devices.on('connect', (d) => {
+    if (d.conn === 'bt') lastBtConnect = Date.now();
+    if (config.get().deviceCards !== false) send('island:event', { type: 'device-on', ...d });
+  });
+  devices.on('disconnect', (d) => { if (config.get().deviceCards !== false) send('island:event', { type: 'device-off', ...d }); });
+  devices.on('battery', (d) => { if (config.get().deviceCards !== false && Date.now() - lastBtConnect < 30000) send('island:event', { type: 'device-on', ...d, again: true }); });
+  devices.on('low', (d) => {
+    send('island:event', { type: 'device-low', ...d });
+    notify(`${d.name} pili azaldı`, `%${d.battery} kaldı`);
+  });
+  if (config.get().deviceCards !== false) devices.start();
 
   privacy = new PsLoop(scriptsDir(), 'privacy.ps1');
   privacy.on('message', (m) => {
@@ -1151,6 +1171,7 @@ ipcMain.handle('island:init', () => ({
     weather: weather ? weather.state : null,
     tokens: tokens ? tokens.state : null,
     usageHistory: usageHist ? usageHist.get() : null,
+    devices: devices ? devices.state : null,
     plugins: plugins ? plugins.list.filter((p) => (config.get().pluginsEnabled || {})[p.id]) : [],
   },
 }));
@@ -1454,7 +1475,7 @@ ipcMain.handle('settings:get', () => ({
 const SETTABLE = {
   sound: 'bool', notifications: 'bool', desktopWatcher: 'bool', hideFullscreen: 'bool', sleepy: 'bool',
   albumColor: 'bool', glass: 'bool', visualizer: 'bool', media: 'bool', shortcuts: 'bool', clipboard: 'bool', translateLyrics: 'bool',
-  weatherRest: 'bool', autoUpdate: 'bool', privacyDots: 'bool', deviceCards: 'bool', quickReply: 'int', calendarUrl: 'url', calendarReminder: 'int',
+  weatherRest: 'bool', autoUpdate: 'bool', lowBattery: 'int', privacyDots: 'bool', deviceCards: 'bool', quickReply: 'int', calendarUrl: 'url', calendarReminder: 'int',
   skin: ['slate', 'black'], accent: ['deniz', 'gok', 'lila', 'mercan', 'fener', 'yosun', 'pembe', 'windows'],
   position: ['center', 'left', 'right'], display: 'display', dragX: 'drag', scale: 'num', summaryTime: 'hm', classReminder: 'int', updateRepo: 'repo',
 };
@@ -1480,6 +1501,8 @@ function applySettings(patch) {
   if ('shortcuts' in clean) registerShortcuts();
   if ('clipboard' in clean) clip.setEnabled(clean.clipboard);
   if ('calendarUrl' in clean) { calendar.setUrl(clean.calendarUrl); calendar.start(); }
+  if ('deviceCards' in clean) clean.deviceCards ? devices.start() : devices.stop();
+  if ('lowBattery' in clean) { clean.lowBattery = Math.min(50, clean.lowBattery); config.set({ lowBattery: clean.lowBattery }); }
   if ('quickReply' in clean) { clean.quickReply = Math.min(60, clean.quickReply); config.set({ quickReply: clean.quickReply }); server.replyWindow = clean.quickReply; }
   if ('privacyDots' in clean) {
     if (clean.privacyDots) privacy.start();
@@ -1607,6 +1630,7 @@ app.on('before-quit', () => {
   if (sysVol) sysVol.stop();
   if (media) media.stop();
   if (privacy) privacy.stop();
+  if (devices) devices.stop();
   if (clip) clip.stop();
   if (usage) usage.stop();
   if (updater) updater.stop();

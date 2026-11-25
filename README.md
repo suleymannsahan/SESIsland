@@ -192,7 +192,7 @@ Dosyaları adanın üstüne sürükleyip bırak; Ada onları rafta tutar. Sonra 
 ## ✨ Küçük dokunuşlar
 
 - **Kamera / mikrofon noktası:** bir uygulama kamerayı kullanırken yeşil, mikrofonu kullanırken turuncu nokta yanar (üstüne gelince hangi uygulama olduğu yazar).
-- **Cihazlar:** Bluetooth kulaklık bağlanınca (Windows biliyorsa pil yüzdesiyle), şarj takılınca/çıkınca ve pil %20, %10, %5'e düşünce kısa bir kart.
+- **Cihazlar:** Bluetooth kulaklık, fare, klavye, oyun kolu, telefon ya da USB bellek bağlanınca toplanmış adada adı ve pili varsa şarj göstergesi görünür. Bir cihazın ya da bilgisayarın pili seçtiğin seviyenin altına düşünce (Ayarlar → Görünüm) uyarı verir.
 - **Olay animasyonları:** iş bitince ışık halkası ve parlama, Pomodoro bitince konfeti, izin beklerken amber nabız.
 - **Tema:** gece mavisi ya da tamamen siyah ada, 7 vurgu rengi ya da Windows'un kendi rengi, Kompakt / Normal / Büyük boyut.
 - **Fener:** gece yıldızlar ve ay, sabah güneş doğar, sınavdan önceki gün terler, uyurken "z" çıkarır; yağmurda, karda, fırtınada hava da fenerde.

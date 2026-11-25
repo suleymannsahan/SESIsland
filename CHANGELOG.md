@@ -6,6 +6,16 @@ Her sürüm etiketinde GitHub Actions bu dosyadaki ilgili bölümü sürüm notl
 
 ## [Yayınlanmamış]
 
+## [0.7.2] - 2026-11-25
+
+### Eklendi
+- **Cihaz bağlanınca adada göster:** Bluetooth kulaklık, fare, klavye, oyun kolu, telefon, saat ya da USB bellek bağlanınca toplanmış adada türünün simgesi, adı ve pili varsa şarj göstergesi birkaç saniye görünür; ayrılınca da kısaca yazar.
+- **Pil uyarısı:** bağlı bir cihazın ya da bilgisayarın pili seçtiğin seviyenin (%10 / %15 / %20 / %30) altına düşünce uyarı kartı ve bildirim; %10 ve %5'te bir kez daha.
+- Sistem sekmesinde bağlı cihazların pilleri.
+
+### Değişti
+- Şarj takıldı / çıkarıldı bildirimi kart yerine kısa hap olarak görünür.
+
 ## [0.7.1] - 2026-11-25
 
 ### Değişti

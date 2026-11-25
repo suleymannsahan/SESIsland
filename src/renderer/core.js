@@ -99,6 +99,8 @@
     holdOpen: (on) => { ui.holdOpen = !!on; },
   };
   let started = false;
+  let notice = null;
+  Ada.notice = (n) => { notice = { ...n, until: Date.now() + (n.ms || 4000) }; render(); setTimeout(render, (n.ms || 4000) + 30); };
   const eventListeners = [];
   const pillProviders = [];
   Ada.addPill = (p) => pillProviders.push(p);
@@ -363,6 +365,8 @@
       const dots = privacyHtml();
       return dots ? { ...v, html: v.html.replace(/<\/div>\s*$/, dots + '</div>') } : v;
     };
+    // a short notice in pill shape (a device connected, the charger…) wins over the usual pill
+    if (notice && Date.now() < notice.until) return withPriv({ mode: 'pill', key: 'notice:' + notice.key, status: notice.status || 'idle', html: notice.html });
     const p = primarySession();
     if (p && live(p)) return withPriv(viewPill(p));
     // tabs (and other pill providers) may offer a collapsed pill in priority order

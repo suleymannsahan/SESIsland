@@ -119,3 +119,25 @@ test('update: summary line and a checked download', async () => {
   await assert.rejects(download({ installer: true, name: 'b.exe', url: 'x', size: data.length, sha256: '0'.repeat(64) }, dir, { fetch }), /sha256/);
   await assert.rejects(download({ installer: true, name: 'c.exe', url: 'x', size: data.length + 1, sha256: '' }, dir, { fetch }), /eksik/);
 });
+
+test('devices: connect, disconnect, late battery, low-battery levels', () => {
+  const { Devices, guessKind } = require('../src/devices.js');
+  const d = new Devices('/nowhere', { threshold: () => 20 });
+  const ev = [];
+  for (const k of ['connect', 'disconnect', 'battery', 'low']) d.on(k, (x) => ev.push(`${k}:${x.name}${x.level ? '@' + x.level : ''}`));
+  d.onMessage({ bt: [{ id: 'A', name: 'Galaxy Buds2', kind: '', battery: null }], usb: [] });   // already there at start: no event
+  d.onMessage({ bt: [{ id: 'A', name: 'Galaxy Buds2', kind: '', battery: 30 }, { id: 'B', name: 'MX Master 3S', kind: 'input', battery: 50 }], usb: { id: 'E:', name: 'USB (E:)', size: 1 } });
+  d.onMessage({ bt: [{ id: 'A', name: 'Galaxy Buds2', kind: '', battery: 19 }], usb: [] });
+  d.onMessage({ bt: [{ id: 'A', name: 'Galaxy Buds2', kind: '', battery: 18 }], usb: [] });
+  d.onMessage({ bt: [{ id: 'A', name: 'Galaxy Buds2', kind: '', battery: 4 }], usb: [] });
+  d.onMessage({ bt: [{ id: 'A', name: 'Galaxy Buds2', kind: '', battery: 90 }], usb: [] });   // charged: warnings reset
+  d.onMessage({ bt: [{ id: 'A', name: 'Galaxy Buds2', kind: '', battery: 20 }], usb: [] });
+  assert.deepEqual(ev, [
+    'connect:MX Master 3S', 'connect:USB (E:)', 'battery:Galaxy Buds2',
+    'disconnect:MX Master 3S', 'disconnect:USB (E:)', 'low:Galaxy Buds2@20',
+    'low:Galaxy Buds2@5', 'low:Galaxy Buds2@20',
+  ]);
+  assert.equal(d.state.bt[0].kind, 'audio');
+  assert.equal(guessKind('MX Master 3S', 'input'), 'mouse');
+  assert.equal(guessKind('Xbox Wireless Controller', ''), 'gamepad');
+});

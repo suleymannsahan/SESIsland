@@ -45,6 +45,14 @@
     </div>`;
   }
 
+  // Bluetooth devices with a battery level, under the laptop's battery
+  function deviceList(max) {
+    const d = S.mods.devices;
+    const list = ((d && d.bt) || []).filter((x) => x.battery != null).slice(0, max);
+    if (!list.length || !Ada.battHtml) return '';
+    return `<div class="bt-list">${list.map((x) => `<div class="bt-row" title="${esc(x.name)}"><span class="bt-name">${esc(x.name)}</span><span class="bt-b">${Ada.battHtml(x.battery)}</span></div>`).join('')}</div>`;
+  }
+
   function tiles() {
     const s = S.mods.system;
     if (!s) return '<p class="hint-l">Ölçülüyor…</p>';
@@ -73,12 +81,14 @@
         : '<b class="dim">—</b><span class="ts">NVIDIA kartı bulunamadı</span>'}
       </div>
       <div class="tile">
-        <span class="tl">Pil</span>
         ${bat && bat.level != null && !(bat.charging && bat.level === 1 && bat.chargingTime === 0 && !bat.real)
-          ? `<b class="${bat.level < 0.15 && !bat.charging ? 'bad' : ''}">%${Math.round(bat.level * 100)}</b>
+          ? `<span class="tl">Pil</span>
+             <b class="${bat.level < 0.15 && !bat.charging ? 'bad' : ''}">%${Math.round(bat.level * 100)}</b>
              <span class="meter"><i data-w="${Math.round(bat.level * 100)}"></i></span>
-             <span class="ts">${bat.charging ? 'şarj oluyor' : 'pilde'}</span>`
-          : '<b class="dim">—</b><span class="ts">Pil yok (masaüstü)</span>'}
+             <span class="ts">${bat.charging ? 'şarj oluyor' : 'pilde'}</span>${deviceList(2)}`
+          : deviceList(4)
+            ? `<span class="tl">Cihaz pilleri</span>${deviceList(4)}`
+            : '<span class="tl">Pil</span><b class="dim">—</b><span class="ts">Pil yok (masaüstü)</span>'}
       </div>
 `;
   }
