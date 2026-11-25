@@ -1101,3 +1101,11 @@ input.bad { border-color: rgba(240, 124, 107, .6) !important; }
 .bt-row .bt-name { width: 100%; font-weight: 600; }
 .bt-row .bt-b { display: flex; align-items: center; }
 .bt-list { margin-top: 4px; gap: 7px; }
+
+/* =================================================================== 0.7.3: weather on the small island */
+.wx { display: inline-flex; align-items: center; gap: 4px; }
+.wx-ic.sm { width: 16px; height: 16px; }
+.wx-ic .moon { fill: #f5e6b8; stroke: none; }
+/* the icon shows the sky now; the lighthouse keeps only falling rain / snow / lightning */
+.rest.has-wx .fener .wx-cloud { opacity: 0 !important; }
+.rest.has-wx .fener .moon { opacity: 0 !important; }

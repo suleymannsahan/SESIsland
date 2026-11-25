@@ -32,14 +32,14 @@
   function weatherTile() {
     const w = S.mods.weather;
     if (!w || !w.configured) {
-      return `<div class="tile wx-tile empty"><span class="tl">Hava durumu</span><p class="ts">Şehrini bir kere seç, sıcaklık adada görünsün.</p>
+      return `<div class="tile wx-tile empty"><span class="tl">Hava durumu</span><p class="ts">Konumun bulunamadı. Şehrini bir kere seç, sıcaklık adada görünsün.</p>
         <button class="btn-text sm" data-act="settings" data-id="hava">Şehri seç</button></div>`;
     }
     if (!w.now) return `<div class="tile wx-tile"><span class="tl">${esc(w.place ? w.place.name : 'Hava durumu')}</span><p class="ts">${esc(w.error || 'Alınıyor…')}</p></div>`;
     const days = (w.days || []).slice(1, 4);
     return `<div class="tile wx-tile">
       <span class="tl">${esc(w.place.name)}</span>
-      <div class="wx-now"><span class="wx-ic big">${WX[w.now.kind] || WX.cloudy}</span><b>${w.now.temp}°</b>
+      <div class="wx-now"><span class="wx-ic big">${Ada.wxIcon ? Ada.wxIcon(w.now.kind, w.now.isDay) : WX[w.now.kind] || WX.cloudy}</span><b>${w.now.temp}°</b>
         <span class="wx-txt">${esc(w.now.text)}<small>hissedilen ${w.now.feels}° · rüzgâr ${w.now.wind} km/s</small></span></div>
       <div class="wx-days">${days.map((d) => `<span class="wx-d" title="${esc(d.text)}${d.rain != null ? ` · yağış %${d.rain}` : ''}"><i>${DAY[new Date(d.date + 'T12:00').getDay()]}</i><span class="wx-ic">${WX[d.kind] || WX.cloudy}</span><em>${d.max}° <s>${d.min}°</s></em></span>`).join('')}</div>
     </div>`;

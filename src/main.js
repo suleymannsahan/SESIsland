@@ -624,6 +624,28 @@ function cleanMediaTrack({ id, title, artist, album, dur }) {
   return { id: String(id), name, artists: art, firstArtist: art.split(/,|&| x | ve /i)[0].trim(), album: album || '', duration: Number(dur) || 0 };
 }
 
+// ================================================================= weather location
+function locateForWeather() {
+  return new Promise((resolve, reject) => {
+    if (process.platform !== 'win32') return reject(new Error('Sadece Windows'));
+    require('child_process').execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(scriptsDir(), 'locate.ps1')],
+      { windowsHide: true, timeout: 25000 }, (err, out) => {
+        let j = null;
+        try { j = JSON.parse(String(out || '').trim().split(/\r?\n/).pop()); } catch { /* nothing */ }
+        if (!j || !Number.isFinite(j.lat) || !Number.isFinite(j.lon)) {
+          diag('locate', (j && j.error) || (err && err.message) || 'yok');
+          return reject(new Error('Konum alınamadı. Windows Ayarlar → Gizlilik → Konum\'da masaüstü uygulamalarına izin ver ya da şehrini yaz.'));
+        }
+        const place = { name: 'Konumun', admin: '', country: '', lat: j.lat, lon: j.lon, auto: true };
+        config.set({ weatherPlace: place });
+        weather.setPlace(place);
+        weather.start();
+        diag('locate', `${j.lat},${j.lon} ±${j.acc}m`);
+        resolve(place);
+      });
+  });
+}
+
 // ================================================================= devices
 // "Headphones (WH-1000XM4)" -> "WH-1000XM4"
 function shortDeviceName(name) {
@@ -763,6 +785,8 @@ function setupModules() {
   weather.on('state', (st) => mod('weather', st));
   weather.setPlace(config.get().weatherPlace);
   weather.start();
+  // no city chosen yet: ask Windows where this computer is, once
+  setTimeout(() => { if (!config.get().weatherPlace && config.get().weatherAuto !== false) locateForWeather().catch(() => {}); }, 10000);
 
   timers = new Timers(ud);
   timers.on('state', (st) => mod('timers', st));
@@ -1384,6 +1408,7 @@ const CALLS = {
       return p;
     },
     refresh: () => weather.refresh(),
+    locate: () => locateForWeather(),
   },
   timers: {
     add: (t) => timers.add(t || {}),

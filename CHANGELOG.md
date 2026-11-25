@@ -6,6 +6,12 @@ Her sürüm etiketinde GitHub Actions bu dosyadaki ilgili bölümü sürüm notl
 
 ## [Yayınlanmamış]
 
+## [0.7.3] - 2026-11-25
+
+### Eklendi
+- **Hava durumu küçük adada:** fenerin yanında havanın simgesi (güneş, ay, bulut, yağmur, kar, fırtına, sis) ve sıcaklık.
+- Şehir seçilmemişse Ada konumu Windows'tan bir kere alır; Ayarlar → Hava durumu'nda **Konumumu kullan** düğmesi.
+
 ## [0.7.2] - 2026-11-25
 
 ### Eklendi

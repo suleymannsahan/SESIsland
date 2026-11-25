@@ -229,6 +229,12 @@
     if (list.length === 1) box.firstChild.click();
   }
   $('wx-find').addEventListener('click', findCity);
+  $('wx-locate').addEventListener('click', async () => {
+    msg($('wx-msg'), 'Konum alınıyor…');
+    const r = await ada.call('weather', 'locate');
+    if (r.ok && r.result) { wxBadge(r.result); msg($('wx-msg'), 'Konumun bulundu; hava durumu birazdan adada.', 'ok'); }
+    else msg($('wx-msg'), r.error || 'Konum alınamadı', 'err');
+  });
 
   // ---- plugins
   async function loadPlugins() {
