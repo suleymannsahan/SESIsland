@@ -6,6 +6,20 @@ Her sürüm etiketinde GitHub Actions bu dosyadaki ilgili bölümü sürüm notl
 
 ## [Yayınlanmamış]
 
+## [0.7.6] - 2026-11-25
+
+### Değişti
+- **Ayarlar yeniden tasarlandı:** solda gruplanmış ve simgeli bölümler (Görünüm, Çalışma, Bağlantılar, Sistem), her bölüm kendi sayfasında, ayarlar başlıklı kartlarda. Açma kapama düğmeleri anahtar biçiminde, her birinin altında kısa bir açıklama var.
+- Tema seçimi küçük ada önizlemeleriyle, ses paketleri kartlarla seçiliyor.
+- Ayarlar penceresi adanın temasına (açık, koyu, Windows'a göre) ve vurgu rengine uyuyor.
+- Claude çalışırken adanın içindeki dalgalı çizgi artık sadece kenar ışığı kapalıyken görünüyor.
+
+### Eklendi
+- **Ayarlarda arama** (Ctrl+F): yazdıkça bütün bölümlerdeki eşleşen ayarlar görünür.
+- **Haftalık program görünümü:** Ders programı sayfasında derslerin gün gün, saat saat çizelgesi; bugünün sütunu ve şu anki saat işaretli. Bir derse tıklayınca listede o ders açılır.
+- Ders programını dosyadan **içe aktarma** ve dosyaya **dışa aktarma**.
+- Kaydedilmemiş ders değişikliklerinde kaydet çubuğu vurgulanır.
+
 ## [0.7.5] - 2026-11-25
 
 ### Eklendi

@@ -89,7 +89,8 @@ body[data-pos="right"] #inner, body[data-pos="right"] .ghost { left: auto; right
 }
 .tide svg { width: 125%; height: 100%; display: block; animation: tide 2.4s linear infinite; }
 .tide path { fill: none; stroke: var(--deniz); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
-#island[data-status="working"] .tide { opacity: .85; }
+/* only when the edge light is off: the two together are too much */
+body:not(.edge-glow) #island[data-status="working"] .tide { opacity: .85; }
 @keyframes tide { to { transform: translateX(-20%); } }
 
 /* ---------------------------------------------------------------- lighthouse beam (needs you) */
@@ -211,7 +212,7 @@ kbd { font-family: var(--ui); font-size: 11px; color: var(--mist); margin-left: 
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
-  #island[data-status="working"] .tide { opacity: .85; }
+  body:not(.edge-glow) #island[data-status="working"] .tide { opacity: .85; }
 }
 
 /* =================================================================== panel (hover) — wide, short strip */

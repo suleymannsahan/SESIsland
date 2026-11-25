@@ -428,13 +428,13 @@ function openSettings(section) {
     return;
   }
   settingsWin = new BrowserWindow({
-    width: 780,
+    width: 960,
     height: 780,
     title: 'Ada · Ayarlar',
-    backgroundColor: '#1a2533',
+    backgroundColor: '#121b26',
     autoHideMenuBar: true,
     resizable: true,
-    minWidth: 640,
+    minWidth: 760,
     minHeight: 520,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
