@@ -949,7 +949,14 @@ async function pickColor() {
     const onDone = (e, c) => { if (pickerWin && e.sender === pickerWin.webContents) finish(c); };
     ipcMain.on('picker:done', onDone);
     pickerWin.on('closed', () => finish(null));
-    pickerWin.on('blur', () => setTimeout(() => finish(null), 150));
+    // Losing focus no longer closes the picker: on Windows the focus can bounce back to the island
+    // (or another window) right after the picker opens, which used to close it at once. It stays
+    // until a colour is picked, Esc or a right click. While it's open it takes the focus back.
+    pickerWin.on('blur', () => setTimeout(() => {
+      if (done || !pickerWin || pickerWin.isDestroyed()) return;
+      pickerWin.moveTop();
+      pickerWin.focus();
+    }, 60));
     pickerWin.webContents.once('did-finish-load', () => {
       pickerWin.webContents.send('picker:image', { dataUrl, scaleFactor: d.scaleFactor });
       pickerWin.setBounds(d.bounds);

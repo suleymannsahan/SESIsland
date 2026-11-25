@@ -50,7 +50,7 @@
       { title: 'Sesi kapat / aç', keys: 'sessiz mute ses kapat', icon: 'cog', run: () => ada.call('volume', 'toggleMute') },
       { title: 'Pomodoro başlat / duraklat', keys: 'pomodoro odak focus calis', icon: 'timer', run: () => ada.call('pomodoro', 'toggle') },
       { title: 'Kronometre başlat / duraklat', keys: 'kronometre stopwatch', icon: 'timer', run: () => ada.call('stopwatch', 'toggle') },
-      { title: 'Renk seç (ekrandan)', keys: 'renk sec renk secici color picker hex', icon: 'color', run: () => ada.call('picker', 'color') },
+      { title: 'Renk seç (ekrandan)', keys: 'renk sec renk secici color picker hex', icon: 'color', run: () => setTimeout(() => ada.call('picker', 'color'), 250) },
       { title: 'Panodaki metni QR kod yap', keys: 'qr karekod qr kod', icon: 'qr', run: () => ada.call('qr', 'make', '') },
       { title: 'Hava durumu', keys: 'hava durumu weather sicaklik', icon: 'weather', run: () => Ada.openTab('system') },
       { title: 'Adayı gizle', keys: 'gizle hide sakla', icon: 'cog', run: () => ada.call('palette', 'hide') },

@@ -8,6 +8,9 @@ Her sürüm etiketinde GitHub Actions bu dosyadaki ilgili bölümü sürüm notl
 
 ## [0.7.6] - 2026-11-25
 
+### Düzeltildi
+- Renk seçici açılır açılmaz kapanıyordu: odak bir an adaya ya da başka bir pencereye geçince kendini kapatıyordu. Artık sen bir renge tıklayana, Esc'ye ya da sağ tuşa basana kadar açık kalır.
+
 ### Değişti
 - **Ayarlar yeniden tasarlandı:** solda gruplanmış ve simgeli bölümler (Görünüm, Çalışma, Bağlantılar, Sistem), her bölüm kendi sayfasında, ayarlar başlıklı kartlarda. Açma kapama düğmeleri anahtar biçiminde, her birinin altında kısa bir açıklama var.
 - Tema seçimi küçük ada önizlemeleriyle, ses paketleri kartlarla seçiliyor.
