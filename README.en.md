@@ -42,7 +42,9 @@ Follow Claude, control your music, stay focused — without leaving what you're 
 - [What it does](#what-it-does)
 - [Requirements](#requirements)
 - [Install](#install)
+- [Command bar](#️-command-bar)
 - Tabs: [Claude](#-claude) · [Music](#-music) · [Focus](#️-focus) · [Classes](#-classes) · [Tools](#-tools) · [Serial port](#-serial-port) · [System](#-system) · [Shelf](#️-shelf) · [Small touches](#-small-touches)
+- [Plugins](#-plugins)
 - [Shortcuts](#shortcuts)
 - [Troubleshooting](#troubleshooting)
 - [Privacy](#privacy)
@@ -61,14 +63,16 @@ Ada is a thin strip at the top centre of your screen. When nothing is happening 
 
 | | Tab | In one line |
 |---|---|---|
+| ⌨️ | [Command bar](#️-command-bar) | `Ctrl` `Alt` `Space`: launch apps, calculate, set timers and alarms, play songs, jot notes, change settings |
 | 🤖 | [Claude](#-claude) | Follow Claude Code / Desktop, approve permissions, answer questions, keep Claude going from the island |
 | 🎵 | [Music](#-music) | Spotify and anything playing on Windows: controls, search, add to playlist, synced lyrics, live audio bars |
-| ⏱️ | [Focus](#️-focus) | Pomodoro, stopwatch, silence notifications while focusing, daily and weekly summary |
+| ⏱️ | [Focus](#️-focus) | Pomodoro, stopwatch, timers and alarms, silence notifications while focusing, daily and weekly summary |
 | 📚 | [Classes](#-classes) | Class timetable, exam countdown, Google Calendar events and one-click meeting join |
 | 🧮 | [Tools](#-tools) | Engineering calculator, resistor colour code, unit converter, notes, clipboard history |
 | 🔌 | [Serial port](#-serial-port) | ESP32 / Arduino output, PASS/FAIL colours, live plot, CSV |
-| 📊 | [System](#-system) | CPU, memory, NVIDIA GPU, battery |
+| 📊 | [System](#-system) | Weather, CPU, memory, NVIDIA GPU, battery |
 | 🗂️ | [Shelf](#️-shelf) | Drop files on the island, drag them out wherever you need them |
+| 🧩 | [Plugins](#-plugins) | Add your own tab to the island |
 
 ## Requirements
 
@@ -90,6 +94,20 @@ Ada has no server and no account; there are no extra programs or drivers to inst
 
 Ada tells you on the island when a new version is out.
 
+## ⌨️ Command bar
+
+Press `Ctrl` `Alt` `Space` anywhere and the island turns into a search box. Arrow keys to choose, `Enter` to run, `Esc` to close.
+
+- **Launch apps:** type a few letters of the name (`vsc` → Visual Studio Code).
+- **Calculate and convert:** `12*4.7k`, `1k||2.2k`, `20dBm`, `22AWG`; `Enter` copies the result.
+- **Timers and alarms:** `15 dk çay` (15 min, "tea"), `1 sa 30 dk`, `7:30 kalk`.
+- **Songs:** `çal <song>` searches Spotify and plays the one you pick.
+- **Notes:** `not <text>` appends to the note in Tools, with the date and time.
+- **Web:** `g esp32 pinout` searches Google.
+- **Settings and tabs:** theme, `ses 40` (volume 40%), colour picker, QR, Pomodoro, shelf…
+
+<p align="center"><img src="docs/palette.png" width="600" alt="Command bar"></p>
+
 ## 🤖 Claude
 
 Follow Claude Code and Claude Desktop from the island. Approve permission requests without switching to the terminal or window, answer multiple-choice questions with one click, and hear when the job is done. Your usage limit is shown at the top.
@@ -103,6 +121,12 @@ Follow Claude Code and Claude Desktop from the island. Approve permission reques
 **Reply from the island:** when Claude Code finishes, the card offers **Continue**, **Test it**, **Explain**, **Commit** and a text box; what you type goes to Claude, which keeps working without you going back to the terminal. With several sessions running, the collapsed island shows them side by side, and the session list shows each one's last message.
 
 <p align="center"><img src="docs/reply.png" width="480" alt="Quick reply from the island when a job is done"></p>
+
+Claude Desktop gets the same card; your reply is typed into the Desktop window and sent.
+
+**Usage:** switch the Claude tab to **Kullanım** (Usage) to see daily token use for the last 7 days (from Claude Code's own logs on this computer), how the weekly limit filled up, and the projects you worked on most.
+
+<p align="center"><img src="docs/usage.png" width="820" alt="Daily tokens and weekly limit chart"></p>
 
 ## 🎵 Music
 
@@ -125,6 +149,10 @@ Pomodoro ring, presets (25/5, 50/10, 15/3), music when focus starts, pause on br
 
 <p align="center"><img src="docs/stopwatch.png" width="820" alt="Stopwatch and laps"></p>
 
+**Timers and alarms:** switch to **Sayaç** (Timer) and tap a preset or type `15 dk`, `7:30`. Several timers can run at once; pause them or add a minute. When one ends the island rings (even with sounds off) and offers **snooze 5 min**. Alarms that came due while Ada was closed ring when it starts.
+
+<p align="center"><img src="docs/timers.png" width="820" alt="Timers and alarms"></p>
+
 ## 📚 Classes
 
 Today's classes (now / next), days left until exams, and a reminder a few minutes before class. Connect your **Google Calendar** (with its iCal address) and events appear in the same list; the island lets you know before they start, and if there's a Meet / Zoom / Teams link, just press **Join**.
@@ -136,6 +164,8 @@ Today's classes (now / next), days left until exams, and a reminder a few minute
 Engineering calculator (`4.7k*2`, `1k||2.2k`, `12V/220`, `1/(2pi*50Hz*100nF)`), quick notes and clipboard history. Clipboard history is never written to disk.
 
 - **Resistor colour code:** click the bands to pick colours, or type a value (`4k7`, `220`, `1M`); 4 and 5 bands, nearest E24 value.
+- **Colour picker** (`Ctrl` `Alt` `C`): the screen freezes; pick any pixel with the magnifier. HEX goes to the clipboard, RGB / HSL are one click away.
+- **QR code:** turn the link or text on the clipboard into a QR code; copy the image or save it to the desktop.
 - **Convert:** `20dBm` → 100 mW, `22AWG` → diameter/area/resistance, `1kHz` → period, `100nF` → capacitor code (104), `10mil` → mm, `25C` → °F, and nearest E12/E24/E96 values.
 
 <p align="center"><img src="docs/tools.png" width="820" alt="Calculator, notes and clipboard"></p>
@@ -149,7 +179,7 @@ Read ESP32 / Arduino output on the island. Lines containing `PASS` turn green, `
 
 ## 📊 System
 
-CPU, memory, NVIDIA GPU temperature and load, battery, uptime.
+Weather (now and 3 days), CPU, memory, NVIDIA GPU temperature and load, battery, uptime. Choose your city once in Settings → Weather; the temperature also sits next to the lighthouse, and rain or snow falls on it.
 
 <p align="center"><img src="docs/system.png" width="820" alt="System status"></p>
 
@@ -165,19 +195,29 @@ Drag files onto the island and Ada keeps them on the shelf. Later, drag them fro
 - **Devices:** a short card when Bluetooth headphones connect (with battery level if Windows knows it), when the charger is plugged in or out, and when the battery drops to 20%, 10% and 5%.
 - **Event animations:** a light ring and glow when a job is done, confetti when a Pomodoro ends, an amber pulse while a permission is waiting.
 - **Theme:** midnight blue or pure black island, 7 accent colours or Windows' own accent, Compact / Normal / Large size.
-- **Lighthouse:** stars and a moon at night, the sun rises in the morning, it sweats the day before an exam and puffs "z"s while asleep.
+- **Lighthouse:** stars and a moon at night, the sun rises in the morning, it sweats the day before an exam and puffs "z"s while asleep; rain, snow and storms show on it too.
+- **Drag:** hold an empty part of the island and move it along the top of the screen. With several monitors, Settings → Screen → **the screen with the cursor** makes the island follow the mouse.
+- **One-click updates:** when a new version is out a card appears; **Update** downloads it, checks it, installs it and restarts Ada.
+
+## 🧩 Plugins
+
+Add your own tab to Ada: a folder, a `plugin.json` and one JavaScript file that calls `Ada.tab({...})`. Plugins only run after you turn them on in Settings → Plugins. An example **exchange rates** plugin (dollar, euro, pound and a converter) installs with one click.
+
+How to write one: [`PLUGINS.md`](PLUGINS.md) (in Turkish).
 
 ## Shortcuts
 
 | Shortcut | |
 |---|---|
-| `Ctrl` `Alt` `Space` | Play / pause |
+| `Ctrl` `Alt` `Space` | Command bar |
+| `Ctrl` `Alt` `Enter` | Music: play / pause |
 | `Ctrl` `Alt` `→` / `←` | Next / previous song |
 | `Ctrl` `Alt` `↑` / `↓` | Computer volume ±5 |
 | `Ctrl` `Alt` `M` | Mute / unmute |
 | `Ctrl` `Alt` `Y` / `N` | Claude: allow / deny |
 | `Ctrl` `Alt` `P` | Start / pause Pomodoro |
 | `Ctrl` `Alt` `K` | Start / pause stopwatch |
+| `Ctrl` `Alt` `C` | Pick a colour from the screen |
 | `Ctrl` `Alt` `A` | Open the island |
 
 With the pointer over the island: the **wheel** changes volume, **horizontal scroll** (or `Shift` + wheel) changes song.
@@ -240,7 +280,9 @@ For Claude Desktop issues, **Desktop tanılama dosyası oluştur** (`ada-tanilam
 - Clipboard history is never written to disk.
 - For the audio bars, the computer's sound is only listened to in the moment; nothing is recorded or sent.
 - The calendar is read directly from the iCal address you give; events are kept in memory only.
-- Other network requests: `lrclib.net` for lyrics, `mymemory.translated.net` if translation is on, `api.github.com` for update checks.
+- The token chart is read from Claude Code's logs on this computer and sent nowhere.
+- The colour picker's screenshot is never saved; it is gone once you pick.
+- Other network requests: `lrclib.net` for lyrics, `mymemory.translated.net` if translation is on, `open-meteo.com` for weather (only your chosen city's location), `api.github.com` and `github.com` for updates.
 
 ## Development
 
@@ -251,7 +293,7 @@ npm test           # unit tests (also run on Linux / macOS)
 npm run dist       # Windows installer + zip (needs Wine on Linux)
 ```
 
-GitHub Actions runs the tests on every push. A version tag (`git tag v0.6.0 && git push origin v0.6.0`) builds the installer, attaches it to Releases and fills the release notes from [`CHANGELOG.md`](CHANGELOG.md). To contribute: [`CONTRIBUTING.md`](CONTRIBUTING.md).
+GitHub Actions runs the tests on every push. A version tag (`git tag v0.7.0 && git push origin v0.7.0`) builds the installer, attaches it to Releases and fills the release notes from [`CHANGELOG.md`](CHANGELOG.md). To contribute: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 <details>
 <summary>Project structure</summary>
@@ -276,9 +318,15 @@ src/shelf.js             file shelf
 src/serial.js            serial port monitor
 src/system.js            CPU, memory, NVIDIA GPU
 src/winctl.js            fullscreen detection, bring window to front
-src/updater.js           version check against GitHub Releases
-src/renderer/            island UI: core.js + tab-*.js, viz.js (audio bars),
-                         devices.js (device cards), calc.js, electronics.js, settings
+src/updater.js           version check against GitHub Releases, download and install
+src/timers.js            timers and alarms      src/apps.js  Start menu apps
+src/weather.js           weather (Open-Meteo)
+src/tokens.js            Claude Code daily token count
+src/plugins.js           plugins (ada-plugin://)   src/plugins-example/  exchange-rate plugin
+src/picker/              colour picker window
+src/renderer/            island UI: core.js + tab-*.js, palette.js (command bar),
+                         viz.js (audio bars), devices.js, extras.js (colour, QR),
+                         calc.js, electronics.js, timeparse.js, settings
 scripts/*.ps1            Windows helpers: UI Automation, media, volume, serial port,
                          camera/microphone (privacy), Bluetooth battery, window
 test/                    unit tests (node --test)

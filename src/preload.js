@@ -2,7 +2,7 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 const LISTEN = [
-  'island:state', 'island:event', 'island:toast', 'island:expand', 'island:config',
+  'island:state', 'island:event', 'island:toast', 'island:expand', 'island:config', 'island:palette',
   'music:state', 'music:lyrics', 'mod:state', 'island:pointer',
   'settings:spotify', 'settings:login', 'settings:section',
 ];
@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('ada', {
   lyrics: () => ipcRenderer.invoke('music:lyrics'),
   translate: () => ipcRenderer.invoke('music:translate'),
   vizSource: () => ipcRenderer.invoke('viz:source'),
+  drag: (phase) => ipcRenderer.send('island:drag', phase),
   // shelf
   pathFor: (file) => { try { return webUtils.getPathForFile(file); } catch { return ''; } },
   shelfDrag: (paths) => ipcRenderer.send('shelf:drag', paths),

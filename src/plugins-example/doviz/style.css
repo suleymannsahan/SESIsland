@@ -1,0 +1,12 @@
+.dv { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; height: 100%; align-items: center; }
+.dv-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.dv-card { cursor: pointer; transition: box-shadow .15s ease; }
+.dv-card.on { box-shadow: 0 0 0 2px var(--deniz) inset; }
+.dv-card b { font-size: 22px; }
+.dv-conv { display: flex; flex-direction: column; gap: 8px; }
+.dv-row { display: flex; align-items: center; gap: 8px; }
+.dv-row input { flex: 1; height: 34px; padding: 0 10px; font-size: 15px; }
+.dv-cur { font-weight: 700; color: var(--mist); }
+.dv-out { font-size: 14px; color: var(--mist); }
+.dv-out b { font-family: var(--ui-display); font-size: 22px; color: var(--foam); }
+.dv-empty { height: 100%; display: grid; place-items: center; color: var(--mist); }

@@ -3,6 +3,8 @@
 #                                starts or stops covering its whole monitor (games, videos, slides).
 #   -Focus -Names a,b -Title x   brings the first window of those processes (title containing x
 #                                if given) to the front.
+#   -Focus ... -PasteB64 <b64>   then pastes that (UTF-8, base64) text into it and presses Enter;
+#                                the clipboard is put back afterwards.
 param(
   [switch]$Watch,
   [int]$AdaX = 0,
@@ -10,6 +12,7 @@ param(
   [switch]$Focus,
   [string]$Names = '',
   [string]$Title = '',
+  [string]$PasteB64 = '',
   [int]$SelfPid = 0
 )
 
@@ -86,7 +89,25 @@ if ($Focus) {
     $procs = @(Get-Process -Name $n | Where-Object { $_.MainWindowHandle -ne 0 })
     if ($Title) { $match = @($procs | Where-Object { $_.MainWindowTitle -like "*$Title*" }) } else { $match = @() }
     $p = if ($match.Count) { $match[0] } elseif (-not $Title -or $n -eq 'claude') { $procs | Select-Object -First 1 } else { $null }
-    if ($p) { [AdaWin]::Bring($p.MainWindowHandle); Write-Output "focused: $($p.ProcessName) $($p.MainWindowTitle)"; exit 0 }
+    if ($p) {
+      [AdaWin]::Bring($p.MainWindowHandle)
+      if ($PasteB64) {
+        Add-Type -AssemblyName System.Windows.Forms
+        $text = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($PasteB64))
+        $old = $null
+        try { if ([System.Windows.Forms.Clipboard]::ContainsText()) { $old = [System.Windows.Forms.Clipboard]::GetText() } } catch {}
+        Start-Sleep -Milliseconds 350
+        [System.Windows.Forms.Clipboard]::SetText($text)
+        [System.Windows.Forms.SendKeys]::SendWait('^v')
+        Start-Sleep -Milliseconds 250
+        [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
+        Start-Sleep -Milliseconds 400
+        try { if ($null -ne $old) { [System.Windows.Forms.Clipboard]::SetText($old) } else { [System.Windows.Forms.Clipboard]::Clear() } } catch {}
+        Write-Output "pasted: $($p.ProcessName)"
+        exit 0
+      }
+      Write-Output "focused: $($p.ProcessName) $($p.MainWindowTitle)"; exit 0
+    }
   }
   Write-Output 'not-found'
   exit 2

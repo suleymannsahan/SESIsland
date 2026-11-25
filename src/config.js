@@ -24,6 +24,10 @@ const DEFAULTS = {
   privacyDots: true,         // green / orange dot while the camera / microphone is in use
   deviceCards: true,         // headphones connected, charger plugged in, low battery
   quickReply: 15,            // seconds a finished Claude Code session waits for a reply from the island (0 = off)
+  pluginsEnabled: {},        // { <plugin id>: true } — plugins run only after being turned on
+  dragX: 0,                  // sideways offset after dragging the island (DIP from the middle)
+  weatherPlace: null,        // { name, admin, country, lat, lon } chosen in Settings
+  weatherRest: true,         // temperature next to the lighthouse
   calendarUrl: '',           // secret iCal address of a calendar (Google Calendar → Settings → Integrate)
   calendarReminder: 10,      // minutes before an event; 0 = off
   shortcuts: true,

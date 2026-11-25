@@ -188,7 +188,10 @@
           <textarea data-note="1" placeholder="Aklına geleni yaz, kendiliğinden kaydedilir." spellcheck="false" aria-label="Not">${esc(note)}</textarea>
         </section>
         <section class="t-col">
-          <div class="t-head"><h3>Pano</h3>${S.mods.clip && S.mods.clip.items && S.mods.clip.items.length ? '<button class="btn-text sm" data-act="t:clear">Temizle</button>' : ''}</div>
+          <div class="t-head"><h3>Pano</h3>
+            <button class="chip sm" data-act="x:pick" title="Ekrandan renk seç · Ctrl+Alt+C">Renk seç</button>
+            <button class="chip sm" data-act="x:qr" title="Panodaki metni QR kod yap">QR</button>
+            ${S.mods.clip && S.mods.clip.items && S.mods.clip.items.length ? '<button class="btn-text sm" data-act="t:clear">Temizle</button>' : ''}</div>
           <div class="clips" data-region="t-clip">${clipHtml()}</div>
         </section>
       </div>`;

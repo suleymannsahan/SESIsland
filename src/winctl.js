@@ -58,6 +58,16 @@ class WinCtl extends EventEmitter {
     if (this.fullscreen) { this.fullscreen = false; this.emit('fullscreen', false); }
   }
 
+  /** Bring that window to the front, paste the text into it and press Enter (Claude Desktop). */
+  paste(names, text) {
+    return new Promise((resolve) => {
+      if (process.platform !== 'win32') return resolve(false);
+      const b64 = Buffer.from(String(text), 'utf8').toString('base64');
+      execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-STA', '-ExecutionPolicy', 'Bypass', '-File', this.script, '-Focus', '-Names', names.join(','), '-PasteB64', b64],
+        { windowsHide: true, timeout: 15000 }, (err, out) => resolve(!err && /pasted/.test(String(out))));
+    });
+  }
+
   /** Bring a window to the front. names: process names in order of preference. */
   focus(names, title) {
     return new Promise((resolve) => {

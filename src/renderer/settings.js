@@ -158,7 +158,7 @@
 
   // ------------------------------------------------------------ simple options
   const set = (patch) => ada.setSettings(patch);
-  ['sound', 'notifications', 'desktopWatcher', 'loginAtStart', 'hideFullscreen', 'sleepy', 'glass', 'albumColor', 'shortcuts', 'clipboard', 'translateLyrics', 'visualizer', 'privacyDots', 'deviceCards', 'media'].forEach((k) => {
+  ['sound', 'notifications', 'desktopWatcher', 'loginAtStart', 'hideFullscreen', 'sleepy', 'glass', 'albumColor', 'shortcuts', 'clipboard', 'translateLyrics', 'visualizer', 'privacyDots', 'deviceCards', 'media', 'weatherRest'].forEach((k) => {
     $('opt-' + k).addEventListener('change', async (e) => {
       await set({ [k]: e.target.checked });
       if (k === 'shortcuts') refreshShortcuts();
@@ -166,6 +166,10 @@
   });
   document.querySelectorAll('input[name="position"]').forEach((r) => r.addEventListener('change', (e) => set({ position: e.target.value })));
   $('opt-display').addEventListener('change', (e) => set({ display: Number(e.target.value) }));
+  $('center-island').addEventListener('click', () => {
+    set({ position: 'center', dragX: 0 });
+    document.querySelectorAll('input[name="position"]').forEach((r) => { r.checked = r.value === 'center'; });
+  });
   function syncSize(v) {
     $('scale-v').textContent = `%${Math.round(v * 100)}`;
     document.querySelectorAll('input[name="size"]').forEach((r) => { r.checked = Math.abs(Number(r.value) - v) < 0.01; });
@@ -195,6 +199,65 @@
   }
   function calBadge(on) { $('cal-badge').textContent = on ? 'Bağlı' : 'Bağlı değil'; $('cal-badge').classList.toggle('ok', on); }
   $('cal-save').addEventListener('click', saveCalendar);
+
+  // ---- weather: find the city, pick one of the matches
+  function wxBadge(p) { $('wx-badge').textContent = p ? p.name : 'Seçilmedi'; $('wx-badge').classList.toggle('ok', !!p); }
+  async function findCity() {
+    const q = $('wx-city').value.trim();
+    const box = $('wx-results');
+    box.textContent = '';
+    if (!q) return;
+    msg($('wx-msg'), 'Aranıyor…');
+    const r = await ada.call('weather', 'find', q);
+    if (!r.ok) { msg($('wx-msg'), r.error, 'err'); return; }
+    const list = r.result || [];
+    if (!list.length) { msg($('wx-msg'), 'Bu adla bir yer bulunamadı.', 'err'); return; }
+    msg($('wx-msg'), list.length > 1 ? 'Hangisi?' : '');
+    for (const p of list) {
+      const b = document.createElement('button');
+      b.className = 'ghost wx-pick';
+      b.textContent = [p.name, p.admin && p.admin !== p.name ? p.admin : '', p.country].filter(Boolean).join(', ');
+      b.addEventListener('click', async () => {
+        const s2 = await ada.call('weather', 'set', p);
+        box.textContent = '';
+        wxBadge(s2.ok ? s2.result : null);
+        msg($('wx-msg'), `${b.textContent} seçildi.`, 'ok');
+      });
+      box.appendChild(b);
+    }
+    if (list.length === 1) box.firstChild.click();
+  }
+  $('wx-find').addEventListener('click', findCity);
+
+  // ---- plugins
+  async function loadPlugins() {
+    const r = await ada.call('plugins', 'list');
+    const box = $('plugin-list');
+    box.textContent = '';
+    const list = (r.ok && r.result && r.result.plugins) || [];
+    if (!list.length) { box.appendChild(el('p', { class: 'fine', text: 'Yüklü eklenti yok.' })); return; }
+    for (const p of list) {
+      const row = el('label', { class: 'toggle plugin-row' });
+      const cb = el('input', { type: 'checkbox' });
+      cb.checked = p.enabled;
+      cb.addEventListener('change', async () => {
+        await ada.call('plugins', 'setEnabled', { id: p.id, on: cb.checked });
+        msg($('plugin-msg'), cb.checked ? `${p.name} açıldı; ada yenilendi.` : `${p.name} kapatıldı.`, 'ok');
+      });
+      const txt = el('span', { text: `${p.name} ` });
+      txt.appendChild(el('em', { text: `${p.version}${p.author ? ' · ' + p.author : ''}${p.description ? ' · ' + p.description : ''}` }));
+      row.append(cb, txt);
+      box.appendChild(row);
+    }
+  }
+  $('plugin-dir').addEventListener('click', () => ada.call('plugins', 'openDir'));
+  $('plugin-example').addEventListener('click', async () => {
+    const r = await ada.call('plugins', 'installExample');
+    msg($('plugin-msg'), r.ok ? 'Döviz eklentisi kuruldu ve açıldı; adada yeni bir sekme var.' : r.error, r.ok ? 'ok' : 'err');
+    loadPlugins();
+  });
+  loadPlugins();
+  $('wx-city').addEventListener('keydown', (e) => { if (e.key === 'Enter') findCity(); });
   $('opt-calendarUrl').addEventListener('keydown', (e) => { if (e.key === 'Enter') saveCalendar(); });
   $('sum-on').addEventListener('change', (e) => {
     $('opt-summaryTime').disabled = !e.target.checked;
@@ -207,7 +270,7 @@
     msg($('up-msg'), 'Kontrol ediliyor…');
     const r = await ada.call('update', 'check');
     if (!r.ok) msg($('up-msg'), r.error, 'err');
-    else if (r.result && r.result.version) msg($('up-msg'), `Ada ${r.result.version} hazır. Adadaki kartta İndir'e bas.`, 'ok');
+    else if (r.result && r.result.version) msg($('up-msg'), `Ada ${r.result.version} hazır. Adadaki kartta Güncelle'ye bas.`, 'ok');
     else msg($('up-msg'), $('opt-updateRepo').value.trim() ? 'En son sürümü kullanıyorsun.' : 'Önce depo adını yaz.', '');
   });
 
@@ -239,7 +302,7 @@
     schedule = JSON.parse(JSON.stringify(s.schedule || { classes: [], exams: [] }));
     renderClasses();
     renderExams();
-    ['sound', 'notifications', 'desktopWatcher', 'hideFullscreen', 'sleepy', 'glass', 'albumColor', 'shortcuts', 'clipboard', 'translateLyrics', 'visualizer', 'privacyDots', 'deviceCards', 'media'].forEach((k) => { $('opt-' + k).checked = c[k] !== false && !!(c[k] ?? true); });
+    ['sound', 'notifications', 'desktopWatcher', 'hideFullscreen', 'sleepy', 'glass', 'albumColor', 'shortcuts', 'clipboard', 'translateLyrics', 'visualizer', 'privacyDots', 'deviceCards', 'media', 'weatherRest'].forEach((k) => { $('opt-' + k).checked = c[k] !== false && !!(c[k] ?? true); });
     document.querySelectorAll('input[name="skin"]').forEach((r) => { r.checked = r.value === (c.skin || 'slate'); });
     document.querySelectorAll('input[name="accent"]').forEach((r) => { r.checked = r.value === (c.accent || 'deniz'); });
     if (c.systemAccent) document.querySelector('.sw-windows').style.background = '#' + c.systemAccent.slice(0, 6);
@@ -248,6 +311,7 @@
     document.querySelectorAll('input[name="position"]').forEach((r) => { r.checked = r.value === (c.position || 'center'); });
     const ds = $('opt-display');
     (s.displays || []).forEach((d) => ds.appendChild(el('option', { value: String(d.i), text: d.label })));
+    if ((s.displays || []).length > 1) ds.appendChild(el('option', { value: '-1', text: 'İmlecin olduğu ekran (takip et)' }));
     ds.value = String(c.display || 0);
     $('opt-scale').value = c.scale || 1;
     $('scale-v').textContent = `%${Math.round((c.scale || 1) * 100)}`;
@@ -256,6 +320,8 @@
     $('opt-quickReply').value = String([0, 8, 15, 30].includes(Number(c.quickReply)) ? Number(c.quickReply) : 15);
     $('opt-calendarUrl').value = c.calendarUrl || '';
     calBadge(!!c.calendarUrl);
+    wxBadge(c.weatherPlace);
+    if (c.weatherPlace) $('wx-city').value = c.weatherPlace.name;
     $('sum-on').checked = !!c.summaryTime;
     $('opt-summaryTime').value = c.summaryTime || '21:30';
     $('opt-summaryTime').disabled = !c.summaryTime;

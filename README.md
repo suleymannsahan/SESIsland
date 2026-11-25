@@ -40,7 +40,9 @@ Claude'u takip et, müziğini yönet, odaklan — yaptığın işi bırakmadan.
 - [Neler yapıyor?](#neler-yapıyor)
 - [Gereksinimler](#gereksinimler)
 - [Kurulum](#kurulum)
+- [Komut çubuğu](#️-komut-çubuğu)
 - Sekmeler: [Claude](#-claude) · [Müzik](#-müzik) · [Odak](#️-odak) · [Ders](#-ders) · [Araçlar](#-araçlar) · [Seri port](#-seri-port) · [Sistem](#-sistem) · [Raf](#️-raf) · [Küçük dokunuşlar](#-küçük-dokunuşlar)
+- [Eklentiler](#-eklentiler)
 - [Kısayollar](#kısayollar)
 - [Sorun giderme](#sorun-giderme)
 - [Gizlilik](#gizlilik)
@@ -59,14 +61,16 @@ Ada, ekranının üst ortasında duran ince bir şerittir. Bir şey olmadığın
 
 | | Sekme | Bir satırda |
 |---|---|---|
+| ⌨️ | [Komut çubuğu](#️-komut-çubuğu) | `Ctrl` `Alt` `Boşluk`: uygulama aç, hesap yap, sayaç/alarm kur, şarkı çal, not al, ayar değiştir |
 | 🤖 | [Claude](#-claude) | Claude Code / Desktop'ı takip et, izinleri onayla, soruları yanıtla, iş bitince adadan devam ettir |
 | 🎵 | [Müzik](#-müzik) | Spotify ve Windows'ta çalan her şey: kontrol, arama, playliste ekleme, senkronize sözler, canlı ses çubukları |
-| ⏱️ | [Odak](#️-odak) | Pomodoro, kronometre, odakta bildirimleri susturma, günlük ve haftalık özet |
+| ⏱️ | [Odak](#️-odak) | Pomodoro, kronometre, sayaç ve alarmlar, odakta bildirimleri susturma, günlük ve haftalık özet |
 | 📚 | [Ders](#-ders) | Ders programı, sınav geri sayımı, Google Takvim etkinlikleri ve tek tıkla toplantıya katılma |
 | 🧮 | [Araçlar](#-araçlar) | Mühendislik hesap makinesi, direnç renk kodu, birim çevirici, not, pano geçmişi |
 | 🔌 | [Seri port](#-seri-port) | ESP32 / Arduino çıktısı, PASS/FAIL renkleri, canlı grafik, CSV |
-| 📊 | [Sistem](#-sistem) | İşlemci, bellek, NVIDIA GPU, pil |
+| 📊 | [Sistem](#-sistem) | Hava durumu, işlemci, bellek, NVIDIA GPU, pil |
 | 🗂️ | [Raf](#️-raf) | Dosyaları adaya bırak, sonra istediğin yere sürükle |
+| 🧩 | [Eklentiler](#-eklentiler) | Adaya kendi sekmeni ekle |
 
 ## Gereksinimler
 
@@ -90,6 +94,20 @@ Ada'nın kendi sunucusu ya da hesabı yoktur; ek bir program ya da sürücü kur
 
 Yeni sürümler çıktığında Ada adada haber verir.
 
+## ⌨️ Komut çubuğu
+
+Her yerden `Ctrl` `Alt` `Boşluk`'a bas; ada bir arama kutusuna dönüşür. Ok tuşlarıyla seç, `Enter` ile çalıştır, `Esc` ile kapat.
+
+- **Uygulama aç:** adının birkaç harfini yaz (`vsc` → Visual Studio Code).
+- **Hesap ve çevirme:** `12*4.7k`, `1k||2.2k`, `20dBm`, `22AWG`; sonuç `Enter` ile kopyalanır.
+- **Sayaç ve alarm:** `15 dk çay`, `1 sa 30 dk`, `7:30 kalk`.
+- **Şarkı:** `çal gece yolculuğu` → Spotify'da arar, seçtiğini çalar.
+- **Not:** `not laboratuvar raporunu yükle` → Araçlar'daki nota tarih ve saatle eklenir.
+- **Web:** `g esp32 pinout` → Google'da arar.
+- **Ayarlar ve sekmeler:** `tema`, `ses 40`, `renk seç`, `qr`, `pomodoro`, `raf`…
+
+<p align="center"><img src="docs/palette.png" width="600" alt="Komut çubuğu"></p>
+
 ## 🤖 Claude
 
 Claude Code ve Claude Desktop'ı adadan takip et. İzin isteklerini terminale ya da pencereye geçmeden onayla, seçenekli soruları tek tıkla yanıtla, iş bitince sesli haber al. Kullanım limitin de üstte görünür.
@@ -103,6 +121,12 @@ Claude Code ve Claude Desktop'ı adadan takip et. İzin isteklerini terminale ya
 **Adadan yanıt ver:** Claude Code bir işi bitirince kartta **Devam et**, **Test et**, **Açıkla**, **Commit at** düğmeleri ve bir yazı kutusu çıkar; yazdığın şey Claude'a iletilir, terminale dönmeden çalışmaya devam eder. Aynı anda birkaç oturum çalışıyorsa toplanmış ada hepsini yan yana gösterir; oturum listesinde her birinin son mesajı okunur.
 
 <p align="center"><img src="docs/reply.png" width="480" alt="İş bitince adadan hızlı yanıt"></p>
+
+Claude Desktop'ta da aynı kart çıkar; yazdığın yanıt Desktop penceresine yazılıp gönderilir.
+
+**Kullanım:** Claude sekmesinde **Kullanım**'a geçince son 7 günün günlük token kullanımı (bu bilgisayardaki Claude Code kayıtlarından), haftalık limitin nasıl dolduğu ve en çok çalıştığın projeler görünür.
+
+<p align="center"><img src="docs/usage.png" width="820" alt="Günlük token ve haftalık limit grafiği"></p>
 
 ## 🎵 Müzik
 
@@ -125,6 +149,10 @@ Pomodoro halkası, hazır süreler (25/5, 50/10, 15/3), odak başlayınca müzik
 
 <p align="center"><img src="docs/stopwatch.png" width="820" alt="Kronometre ve turlar"></p>
 
+**Sayaç ve alarm:** **Sayaç**'a geçip hazır sürelerden birine bas ya da `15 dk çay`, `7:30` yaz. Birkaç sayaç aynı anda çalışabilir; duraklat, +1 dk ekle. Süre dolunca ada çalar (ses kapalı olsa bile) ve **5 dk ertele** sunar. Ada kapalıyken dolan alarmlar, açılınca çalar.
+
+<p align="center"><img src="docs/timers.png" width="820" alt="Sayaçlar ve alarmlar"></p>
+
 ## 📚 Ders
 
 Bugünkü dersler (şimdi / sıradaki), sınavlara kalan gün ve dersten birkaç dakika önce hatırlatma. **Google Takvim**'ini (iCal adresiyle) bağlarsan etkinlikler derslerle aynı listede görünür, başlamadan önce ada haber verir; Meet / Zoom / Teams linki varsa **Katıl**'a basman yeter.
@@ -136,6 +164,8 @@ Bugünkü dersler (şimdi / sıradaki), sınavlara kalan gün ve dersten birkaç
 Mühendislik hesap makinesi (`4.7k*2`, `1k||2.2k`, `12V/220`, `1/(2pi*50Hz*100nF)`), hızlı not ve pano geçmişi. Pano geçmişi diske yazılmaz.
 
 - **Direnç renk kodu:** bantlara tıklayıp renk seç ya da değeri yaz (`4k7`, `220`, `1M`); 4 ve 5 bant, en yakın E24 değeri.
+- **Renk seçici** (`Ctrl` `Alt` `C`): ekran donar, büyüteçle istediğin pikselin rengini al; HEX panoya kopyalanır, RGB / HSL de bir tıkla.
+- **QR kod:** panodaki linki ya da metni QR koda çevir; resmi kopyala ya da masaüstüne kaydet.
 - **Çevir:** `20dBm` → 100 mW, `22AWG` → çap/kesit/direnç, `1kHz` → periyot, `100nF` → kondansatör kodu (104), `10mil` → mm, `25C` → °F, ve E12/E24/E96 en yakın değerler.
 
 <p align="center"><img src="docs/tools.png" width="820" alt="Hesap makinesi, not ve pano"></p>
@@ -149,7 +179,7 @@ ESP32 / Arduino çıktısını adada oku. `PASS` geçen satırlar yeşil, `FAIL`
 
 ## 📊 Sistem
 
-İşlemci, bellek, NVIDIA ekran kartı sıcaklığı ve yükü, pil, açık kalma süresi.
+Hava durumu (şu an ve 3 gün), işlemci, bellek, NVIDIA ekran kartı sıcaklığı ve yükü, pil, açık kalma süresi. Şehrini Ayarlar → Hava durumu'ndan bir kere seç; sıcaklık fenerin yanında da görünür, yağmurda fenerin üstüne yağmur, karda kar yağar.
 
 <p align="center"><img src="docs/system.png" width="820" alt="Sistem durumu"></p>
 
@@ -165,7 +195,15 @@ Dosyaları adanın üstüne sürükleyip bırak; Ada onları rafta tutar. Sonra 
 - **Cihazlar:** Bluetooth kulaklık bağlanınca (Windows biliyorsa pil yüzdesiyle), şarj takılınca/çıkınca ve pil %20, %10, %5'e düşünce kısa bir kart.
 - **Olay animasyonları:** iş bitince ışık halkası ve parlama, Pomodoro bitince konfeti, izin beklerken amber nabız.
 - **Tema:** gece mavisi ya da tamamen siyah ada, 7 vurgu rengi ya da Windows'un kendi rengi, Kompakt / Normal / Büyük boyut.
-- **Fener:** gece yıldızlar ve ay, sabah güneş doğar, sınavdan önceki gün terler, uyurken "z" çıkarır.
+- **Fener:** gece yıldızlar ve ay, sabah güneş doğar, sınavdan önceki gün terler, uyurken "z" çıkarır; yağmurda, karda, fırtınada hava da fenerde.
+- **Sürükle:** adanın boş bir yerinden tutup ekranın üstünde sağa sola taşı. Birden fazla ekranın varsa Ayarlar → Ekran → **İmlecin olduğu ekran** seçeneğiyle ada farenin olduğu ekrana geçer.
+- **Tek tıkla güncelleme:** yeni sürüm çıkınca adada kart belirir; **Güncelle**'ye basınca Ada indirir, doğrular, kurar ve yeniden açılır.
+
+## 🧩 Eklentiler
+
+Ada'ya kendi sekmeni ekleyebilirsin: bir klasör, bir `plugin.json` ve `Ada.tab({...})` çağıran tek bir JavaScript dosyası yeterli. Eklentiler sen Ayarlar → Eklentiler'den açana kadar çalışmaz. Örnek olarak bir **Döviz** eklentisi (dolar, euro, sterlin ve çevirici) tek tıkla kurulur.
+
+Nasıl yazılacağı: [`PLUGINS.md`](PLUGINS.md).
 
 <br>
 
@@ -173,13 +211,15 @@ Dosyaları adanın üstüne sürükleyip bırak; Ada onları rafta tutar. Sonra 
 
 | Kısayol | |
 |---|---|
-| `Ctrl` `Alt` `Boşluk` | Oynat / duraklat |
+| `Ctrl` `Alt` `Boşluk` | Komut çubuğu |
+| `Ctrl` `Alt` `Enter` | Müzik: oynat / duraklat |
 | `Ctrl` `Alt` `→` / `←` | Sonraki / önceki şarkı |
 | `Ctrl` `Alt` `↑` / `↓` | Bilgisayar sesi ±5 |
 | `Ctrl` `Alt` `M` | Sesi kapat / aç |
 | `Ctrl` `Alt` `Y` / `N` | Claude: izin ver / reddet |
 | `Ctrl` `Alt` `P` | Pomodoro başlat / duraklat |
 | `Ctrl` `Alt` `K` | Kronometre başlat / duraklat |
+| `Ctrl` `Alt` `C` | Ekrandan renk seç |
 | `Ctrl` `Alt` `A` | Adayı aç |
 
 Fare adanın üstündeyken: **tekerlek** sesi değiştirir, **yana kaydırma** (ya da `Shift` + tekerlek) şarkı değiştirir.
@@ -240,7 +280,9 @@ Claude Desktop'la ilgili sorunlarda aynı menüdeki **Desktop tanılama dosyası
 - Pano geçmişi diske yazılmaz.
 - Ses çubukları için bilgisayarın sesi yalnızca anlık olarak dinlenir; hiçbir şey kaydedilmez ya da gönderilmez.
 - Takvim, verdiğin iCal adresinden doğrudan okunur; etkinlikler sadece bellekte tutulur.
-- Ağa çıkan diğer istekler: şarkı sözleri için `lrclib.net`, çeviri açıksa `mymemory.translated.net`, güncelleme kontrolü için `api.github.com`.
+- Token grafiği bu bilgisayardaki Claude Code kayıtlarından okunur; hiçbir yere gönderilmez.
+- Renk seçicinin aldığı ekran görüntüsü kaydedilmez; seçim bitince silinir.
+- Ağa çıkan diğer istekler: şarkı sözleri için `lrclib.net`, çeviri açıksa `mymemory.translated.net`, hava durumu için `open-meteo.com` (yalnızca seçtiğin şehrin konumu), güncelleme için `api.github.com` ve `github.com`.
 
 ## Geliştirme
 
@@ -251,7 +293,7 @@ npm test           # birim testleri (Linux / macOS'ta da çalışır)
 npm run dist       # Windows kurulum dosyası + zip (Linux'ta Wine gerekir)
 ```
 
-Her gönderide GitHub Actions testleri çalıştırır. Bir sürüm etiketi (`git tag v0.6.0 && git push origin v0.6.0`) kurulum dosyasını derler, Releases'e ekler ve sürüm notlarını [`CHANGELOG.md`](CHANGELOG.md)'den doldurur. Katkı için: [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Her gönderide GitHub Actions testleri çalıştırır. Bir sürüm etiketi (`git tag v0.7.0 && git push origin v0.7.0`) kurulum dosyasını derler, Releases'e ekler ve sürüm notlarını [`CHANGELOG.md`](CHANGELOG.md)'den doldurur. Katkı için: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 <details>
 <summary>Proje yapısı</summary>
@@ -276,9 +318,15 @@ src/shelf.js             dosya rafı
 src/serial.js            seri port izleyici
 src/system.js            işlemci, bellek, NVIDIA GPU
 src/winctl.js            tam ekran algılama, pencereyi öne getirme
-src/updater.js           GitHub Releases'ten sürüm kontrolü
-src/renderer/            ada arayüzü: core.js + tab-*.js, viz.js (ses çubukları),
-                         devices.js (cihaz kartları), calc.js, electronics.js, ayarlar
+src/updater.js           GitHub Releases'ten sürüm kontrolü, indirip kurma
+src/timers.js            sayaçlar ve alarmlar   src/apps.js  Başlat menüsü uygulamaları
+src/weather.js           hava durumu (Open-Meteo)
+src/tokens.js            Claude Code günlük token sayımı
+src/plugins.js           eklentiler (ada-plugin://)   src/plugins-example/  Döviz eklentisi
+src/picker/              renk seçici penceresi
+src/renderer/            ada arayüzü: core.js + tab-*.js, palette.js (komut çubuğu),
+                         viz.js (ses çubukları), devices.js, extras.js (renk, QR),
+                         calc.js, electronics.js, timeparse.js, ayarlar
 scripts/*.ps1            Windows yardımcıları: UI Automation, medya, ses, seri port,
                          kamera/mikrofon (privacy), Bluetooth pil, pencere
 test/                    birim testleri (node --test)

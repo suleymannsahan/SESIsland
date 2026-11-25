@@ -409,7 +409,9 @@ class HookServer extends EventEmitter {
         if (prev === 'working' || prev === 'waiting' || prev === 'question') {
           s.status = 'done';
           s.activity = 'Tamamlandı';
-          this.emit('event', { type: 'done', sessionId: id, project: s.project, summary: 'Yanıt hazır.' });
+          // Claude Desktop has no hook to wait on: a reply is typed into its window instead
+          const until = this.replyWindow > 0 ? Date.now() + this.replyWindow * 1000 : 0;
+          this.emit('event', { type: 'done', sessionId: id, project: s.project, summary: 'Yanıt hazır.', replyUntil: until, desktop: true });
           clearTimeout(s.doneTimer);
           s.doneTimer = setTimeout(() => { if (s.status === 'done') { s.status = 'idle'; s.activity = 'Hazır'; this.push(); } }, DONE_LINGER_MS);
         } else if (s.status !== 'done') {

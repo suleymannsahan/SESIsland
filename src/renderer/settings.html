@@ -12,6 +12,8 @@
     <a href="#pomodoro">Pomodoro</a>
     <a href="#ders">Ders programı</a>
     <a href="#takvim">Takvim</a>
+    <a href="#hava">Hava durumu</a>
+    <a href="#eklentiler">Eklentiler</a>
     <a href="#claude">Claude</a>
     <a href="#gorunum">Görünüm</a>
     <a href="#kisayol">Kısayollar</a>
@@ -129,6 +131,32 @@
       <p class="fine">Bu adres gizlidir; Ada onu sadece bu bilgisayarda saklar ve takvimi doğrudan Google'dan okur.</p>
     </section>
 
+    <!-- ================================================= Hava durumu -->
+    <section id="hava" aria-labelledby="hv-h">
+      <div class="sec-head"><h2 id="hv-h">Hava durumu</h2><span id="wx-badge" class="badge"></span></div>
+      <p class="fine">Şehrini seç; sıcaklık fenerin yanında görünür, yağmurda fenerin üstüne yağmur, karda kar yağar. Veriler Open-Meteo'dan gelir; hesap gerekmez, sadece şehrin konumu gönderilir.</p>
+      <div class="row">
+        <input id="wx-city" type="text" spellcheck="false" autocomplete="off" placeholder="Şehir, örn. Trabzon">
+        <button id="wx-find" class="ghost">Bul</button>
+      </div>
+      <div id="wx-results" class="wx-results"></div>
+      <p id="wx-msg" class="msg" role="status"></p>
+      <label class="toggle"><input type="checkbox" id="opt-weatherRest"><span>Sıcaklığı adada göster</span></label>
+    </section>
+
+    <!-- ================================================= Eklentiler -->
+    <section id="eklentiler" aria-labelledby="ek-h">
+      <h2 id="ek-h">Eklentiler</h2>
+      <p class="fine">Eklentiler adaya yeni sekmeler ekler. Her eklenti <b>plugins</b> klasöründe bir klasördür; sen açana kadar çalışmaz. Açtığın eklenti Ada'nın içinde çalışır ve Ada'nın yapabildiği her şeyi yapabilir; sadece güvendiğin eklentileri aç. Nasıl yazılacağı depodaki <b>PLUGINS.md</b> dosyasında.</p>
+      <div id="plugin-list" class="plugin-list"></div>
+      <div class="row">
+        <button id="plugin-dir" class="ghost">Eklenti klasörünü aç</button>
+        <button id="plugin-example" class="ghost">Örnek eklentiyi kur (Döviz)</button>
+        <button id="plugin-docs" class="link" data-open="https://github.com/suleymannsahan/SESIsland/blob/main/PLUGINS.md">Eklenti yazma rehberi</button>
+      </div>
+      <p id="plugin-msg" class="msg" role="status"></p>
+    </section>
+
     <!-- ================================================= Claude -->
     <section id="claude" aria-labelledby="cl-h">
       <h2 id="cl-h">Claude</h2>
@@ -137,7 +165,7 @@
           <option value="0">kapalı</option><option value="8">8 sn</option><option value="15">15 sn</option><option value="30">30 sn</option>
         </select>
       </label>
-      <p class="fine">Claude Code bir işi bitirince adadaki kartta <b>Devam et</b>, <b>Test et</b> gibi düğmeler ve bir yazı kutusu çıkar; yazdığın şey Claude'a iletilir ve çalışmaya devam eder. Bu süre boyunca terminal birkaç saniye bekler; yazmaya başlarsan süre uzar. Kapalıyken terminal hiç beklemez.</p>
+      <p class="fine">Claude bir işi bitirince adadaki kartta <b>Devam et</b>, <b>Test et</b> gibi düğmeler ve bir yazı kutusu çıkar; yazdığın şey Claude'a iletilir ve çalışmaya devam eder. Claude Code'da bu süre boyunca terminal birkaç saniye bekler; yazmaya başlarsan süre uzar. Claude Desktop'ta yanıtın, Desktop penceresine yazılıp gönderilir. Kapalıyken kart çıkmaz ve terminal hiç beklemez.</p>
     </section>
 
     <!-- ================================================= Görünüm -->
@@ -150,6 +178,7 @@
       </div>
       <label for="opt-display" class="sub-l">Ekran</label>
       <select id="opt-display"></select>
+      <p class="fine">Adayı fareyle tutup ekranın üstünde sağa sola sürükleyebilirsin; boş bir yerinden tut. <button id="center-island" class="link">Ortaya al</button></p>
       <span class="sub-l">Tema</span>
       <div class="seg" role="radiogroup" aria-label="Tema">
         <label><input type="radio" name="skin" value="slate"><span>Gece mavisi</span></label>

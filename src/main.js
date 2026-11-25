@@ -1,8 +1,9 @@
 'use strict';
 const {
   app, BrowserWindow, ipcMain, screen, Tray, Menu, Notification, nativeImage, shell, safeStorage, globalShortcut, clipboard,
-  desktopCapturer, session, systemPreferences,
+  desktopCapturer, session, systemPreferences, net, protocol,
 } = require('electron');
+const { pathToFileURL } = require('url');
 const path = require('path');
 const fs = require('fs');
 const { HookServer } = require('./server');
@@ -20,13 +21,21 @@ const { ClipHistory } = require('./clip');
 const { SerialMonitor } = require('./serial');
 const { WinCtl } = require('./winctl');
 const { ClaudeUsage } = require('./usage');
-const { Updater } = require('./updater');
+const { Updater, download: downloadUpdate, newer } = require('./updater');
 const { Store, today } = require('./store');
 const { SystemVolume } = require('./volume');
 const { MediaSessions } = require('./media');
 const { Shelf } = require('./shelf');
 const { PsLoop } = require('./psloop');
 const { Calendar } = require('./calendar');
+const { Timers } = require('./timers');
+const { Apps } = require('./apps');
+const { Weather } = require('./weather');
+const { TokenStats } = require('./tokens');
+const { Plugins } = require('./plugins');
+
+// plugin files are served to the island from their own folder only (see plugins.js)
+protocol.registerSchemesAsPrivileged([{ scheme: 'ada-plugin', privileges: { standard: true, secure: true } }]);
 
 const PORT = 47821;
 const BASE_W = 880;
@@ -50,6 +59,7 @@ let serial = null;
 let winctl = null;
 let usage = null;
 let updater = null;
+let updateBusy = false;
 let schedule = null;
 let notes = null;
 let minuteTimer = null;
@@ -58,6 +68,12 @@ let media = null;
 let shelf = null;
 let privacy = null;
 let calendar = null;
+let timers = null;
+let apps = null;
+let weather = null;
+let tokens = null;
+let plugins = null;
+let usageHist = null;
 let privacyState = { cam: [], mic: [] };
 let launching = null;     // { name, arg, startedAt } while Spotify is being opened
 
@@ -67,11 +83,24 @@ if (!app.requestSingleInstanceLock()) {
 app.setAppUserModelId('com.emre.ada');
 
 // ================================================================= window
+// display: 0 = main screen, 1… = that screen, -1 = follow the cursor to whichever screen it is on
+let followDisplay = null;
 function targetDisplay() {
   const all = screen.getAllDisplays();
   const i = Number(config.get().display) || 0;
+  if (i === -1) {
+    if (!followDisplay || !all.some((d) => d.id === followDisplay.id)) followDisplay = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+    return all.find((d) => d.id === followDisplay.id) || followDisplay;
+  }
   if (i > 0 && all[i]) return all[i];
   return screen.getPrimaryDisplay();
+}
+
+// dragX: how far the island was dragged sideways from the middle (DIP), kept on screen
+function clampDrag(dx, workArea, w) {
+  const room = Math.max(0, workArea.width / 2 - 70);
+  return Math.max(-room, Math.min(room, Math.round(Number(dx) || 0)));
+  // (the window is wider than the island; only the island's middle must stay on screen)
 }
 
 function bounds() {
@@ -83,7 +112,39 @@ function bounds() {
   let x = workArea.x + (workArea.width - w) / 2;
   if (cfg.position === 'left') x = workArea.x + 8;
   if (cfg.position === 'right') x = workArea.x + workArea.width - w - 8;
+  if (cfg.position === 'center' && cfg.dragX) x += clampDrag(cfg.dragX, workArea, w);
   return { x: Math.round(x), y: workArea.y, width: w, height: h, scale };
+}
+
+// ---- dragging the island sideways along the top of the screen
+let dragging = null;   // { anchor, y }
+ipcMain.on('island:drag', (_e, phase) => {
+  if (!win || win.isDestroyed()) return;
+  if (phase === 'start') {
+    const p = screen.getCursorScreenPoint();
+    const b = win.getBounds();
+    dragging = { anchor: p.x - b.x, y: b.y };
+    diag('drag', 'start');
+  } else if (phase === 'end' && dragging) {
+    dragging = null;
+    const b = win.getBounds();
+    const cfg = config.get();
+    const { workArea } = targetDisplay();
+    const centered = workArea.x + (workArea.width - b.width) / 2;
+    const dragX = clampDrag(b.x - centered, workArea, b.width);
+    // snap back to the middle when it is close
+    config.set({ position: 'center', dragX: Math.abs(dragX) < 24 ? 0 : dragX });
+    if (cfg.position !== 'center' || Math.abs(dragX) < 24) placeWindow();
+    if (winctl) winctl.restartWatch(adaPoint());
+    diag('drag', dragX);
+  }
+});
+function dragStep(p) {
+  const { workArea } = targetDisplay();
+  const b = win.getBounds();
+  const centered = workArea.x + (workArea.width - b.width) / 2;
+  const x = centered + clampDrag(p.x - dragging.anchor - centered, workArea, b.width);
+  if (x !== b.x) win.setPosition(Math.round(x), dragging.y);
 }
 
 function createWindow() {
@@ -602,21 +663,63 @@ function setupModules() {
   schedule = new Store(ud, 'schedule', { classes: [], exams: [] });
   notes = new Store(ud, 'notes', { text: '' });
 
+  // plan limits over time: one point per change or per hour, two weeks kept
+  usageHist = new Store(ud, 'usage-history', { points: [] });
   usage = new ClaudeUsage();
-  usage.on('state', (s) => mod('usage', s));
+  usage.on('state', (s) => {
+    mod('usage', s);
+    if (!s || !s.available) return;
+    const pts = usageHist.get().points || [];
+    const last = pts[pts.length - 1];
+    const p = { t: Date.now(), five: s.five ? s.five.pct : null, week: s.week ? s.week.pct : null };
+    if (!last || p.t - last.t > 55 * 60000 || last.five !== p.five || last.week !== p.week) {
+      const keep = pts.filter((x) => p.t - x.t < 15 * 86400000);
+      keep.push(p);
+      usageHist.set({ points: keep.slice(-2000) });
+      mod('usageHistory', usageHist.get());
+    }
+  });
   usage.start();
 
-  updater = new Updater(app.getVersion());
+  tokens = new TokenStats();
+  tokens.on('state', (st) => mod('tokens', st));
+  tokens.start();
+
+  updater = new Updater(app.getVersion(), { fetch: (...a) => net.fetch(...a) });
   updater.setRepo(config.get().updateRepo);
   updater.on('available', (u) => {
     mod('update', u);
     send('island:event', { type: 'update', summary: `Ada ${u.version} hazır`, ...u });
   });
   updater.start();
+  // just updated by the island: say so once
+  const from = config.get().updatedFrom;
+  if (from && newer(app.getVersion(), from)) {
+    setTimeout(() => send('island:event', { type: 'updated', version: app.getVersion(), from, page: `https://github.com/${config.get().updateRepo}/releases/tag/v${app.getVersion()}` }), 4000);
+  }
+  if (from) config.set({ updatedFrom: '' });
 
   shelf = new Shelf(ud, (p) => app.getFileIcon(p, { size: 'normal' }));
   shelf.on('state', (st) => mod('shelf', st));
   shelf.load().catch(() => {});
+
+  apps = new Apps(scriptsDir(), (p) => app.getFileIcon(p, { size: 'normal' }));
+  setTimeout(() => apps.load().catch(() => {}), 8000);
+
+  weather = new Weather((...a) => net.fetch(...a));
+  weather.on('state', (st) => mod('weather', st));
+  weather.setPlace(config.get().weatherPlace);
+  weather.start();
+
+  timers = new Timers(ud);
+  timers.on('state', (st) => mod('timers', st));
+  timers.on('ring', (t) => {
+    const what = t.label || (t.kind === 'alarm' ? 'Alarm' : 'Süre doldu');
+    send('island:event', { type: 'timer-ring', id: t.id, kind: t.kind, label: t.label, dur: t.dur, end: t.end, late: t.late, summary: what });
+    notify(t.kind === 'alarm' ? `⏰ ${what}` : `⏱ ${what}`, t.kind === 'alarm' ? new Date(t.end).toTimeString().slice(0, 5) : 'Zamanlayıcı bitti');
+    if (hidden) toggleHidden();
+  });
+  timers.start();
 
   calendar = new Calendar();
   calendar.on('state', (st) => mod('calendar', st));
@@ -716,8 +819,101 @@ function checkDailySummary() {
 }
 
 // ================================================================= shortcuts
+// ================================================================= colour picker & QR
+// The picker freezes a screenshot of the display under the cursor in a full-screen window with a
+// magnifier; a click picks the pixel. Nothing is saved; the screenshot lives only in that window.
+let pickerWin = null;
+async function pickColor() {
+  if (pickerWin && !pickerWin.isDestroyed()) { pickerWin.focus(); return null; }
+  const pt = screen.getCursorScreenPoint();
+  const d = screen.getDisplayNearestPoint(pt);
+  const size = { width: Math.round(d.size.width * d.scaleFactor), height: Math.round(d.size.height * d.scaleFactor) };
+  // the island steps out of the picture for a moment
+  const op = win.getOpacity();
+  win.setOpacity(0);
+  let src;
+  try {
+    await new Promise((r) => setTimeout(r, 120));
+    const list = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: size });
+    src = list.find((x) => String(x.display_id) === String(d.id)) || list[0];
+  } finally {
+    win.setOpacity(op || 1);
+  }
+  if (!src || src.thumbnail.isEmpty()) throw new Error('Ekran görüntüsü alınamadı');
+  const dataUrl = src.thumbnail.toDataURL();
+  return new Promise((resolve) => {
+    pickerWin = new BrowserWindow({
+      x: d.bounds.x, y: d.bounds.y, width: d.bounds.width, height: d.bounds.height,
+      frame: false, resizable: false, movable: false, minimizable: false, maximizable: false, fullscreenable: false,
+      skipTaskbar: true, alwaysOnTop: true, show: false, backgroundColor: '#000000', enableLargerThanScreen: true,
+      webPreferences: { preload: path.join(__dirname, 'picker', 'preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false },
+    });
+    pickerWin.setAlwaysOnTop(true, 'screen-saver');
+    pickerWin.loadFile(path.join(__dirname, 'picker', 'picker.html'));
+    let done = false;
+    const finish = (c) => {
+      if (done) return;
+      done = true;
+      ipcMain.removeListener('picker:done', onDone);
+      if (pickerWin && !pickerWin.isDestroyed()) pickerWin.destroy();
+      pickerWin = null;
+      resolve(c);
+    };
+    const onDone = (e, c) => { if (pickerWin && e.sender === pickerWin.webContents) finish(c); };
+    ipcMain.on('picker:done', onDone);
+    pickerWin.on('closed', () => finish(null));
+    pickerWin.on('blur', () => setTimeout(() => finish(null), 150));
+    pickerWin.webContents.once('did-finish-load', () => {
+      pickerWin.webContents.send('picker:image', { dataUrl, scaleFactor: d.scaleFactor });
+      pickerWin.setBounds(d.bounds);
+      pickerWin.show();
+      pickerWin.focus();
+    });
+  });
+}
+
+async function pickColorToIsland() {
+  try {
+    const c = await pickColor();
+    if (!c || !/^#[0-9A-F]{6}$/.test(c.hex)) return null;
+    clipboard.writeText(c.hex);
+    send('island:event', { type: 'color', hex: c.hex, r: c.r, g: c.g, b: c.b });
+    return c.hex;
+  } catch (e) {
+    send('island:toast', { kind: 'error', text: e.message });
+    return null;
+  }
+}
+
+let lastQr = null;
+async function makeQr(text) {
+  const t = String(text || clipboard.readText() || '').trim();
+  if (!t) throw new Error('Panoda metin yok · “qr <metin>” yaz');
+  if (t.length > 1500) throw new Error('Metin QR için çok uzun');
+  const QR = require('qrcode');
+  const url = await QR.toDataURL(t, { margin: 1, width: 360, errorCorrectionLevel: 'M', color: { dark: '#0f1a26', light: '#ffffff' } });
+  lastQr = { text: t, url };
+  send('island:event', { type: 'qr', text: t, url });
+  return true;
+}
+
+// Command bar: the island turns into a search box and takes the keyboard.
+function openPalette() {
+  if (!win || win.isDestroyed()) return;
+  if (hidden) toggleHidden();
+  if (fullscreenHidden) { fullscreenHidden = false; applyVisibility(); }
+  typingInIsland = true;
+  win.setFocusable(true);
+  win.setIgnoreMouseEvents(false);
+  win.show();
+  win.focus();
+  send('island:palette', true);
+  diag('palette', 'open');
+}
+
 const SHORTCUTS = [
-  ['CommandOrControl+Alt+Space', 'Müzik: oynat / duraklat', () => transport('toggle')],
+  ['CommandOrControl+Alt+Space', 'Komut çubuğu', () => openPalette()],
+  ['CommandOrControl+Alt+Enter', 'Müzik: oynat / duraklat', () => transport('toggle')],
   ['CommandOrControl+Alt+Right', 'Müzik: sonraki', () => transport('next')],
   ['CommandOrControl+Alt+Left', 'Müzik: önceki', () => transport('prev')],
   ['CommandOrControl+Alt+Up', 'Bilgisayar sesi +5', () => sysVol.step(5)],
@@ -727,6 +923,7 @@ const SHORTCUTS = [
   ['CommandOrControl+Alt+N', 'Claude: reddet', () => decideFirst('deny') || send('island:toast', { kind: 'info', text: 'Bekleyen izin yok' })],
   ['CommandOrControl+Alt+P', 'Pomodoro: başlat / duraklat', () => pomo.toggle()],
   ['CommandOrControl+Alt+K', 'Kronometre: başlat / duraklat', () => watch.toggle()],
+  ['CommandOrControl+Alt+C', 'Ekrandan renk seç', () => pickColorToIsland()],
   ['CommandOrControl+Alt+A', 'Adayı aç', () => { if (hidden) toggleHidden(); send('island:expand', true); }],
 ];
 let shortcutReport = [];
@@ -818,14 +1015,29 @@ function startPointerWatch() {
   clearInterval(pointerTimer);
   pointerTimer = setInterval(() => {
     if (!win || win.isDestroyed() || !win.isVisible() || !islandRect) return;
-    if (holdPointer) return setPointer(true);
     const p = screen.getCursorScreenPoint();
+    if (dragging) { dragStep(p); return setPointer(true); }
+    if (holdPointer) return setPointer(true);
+    followCursorScreen(p);
     const b = win.getBounds();
     const m = 3; // a little slack around the rounded edges
     const inside = p.x >= b.x + islandRect.x - m && p.x <= b.x + islandRect.x + islandRect.w + m
       && p.y >= b.y + islandRect.y - m && p.y <= b.y + islandRect.y + islandRect.h + m;
     setPointer(inside);
   }, 40);
+}
+
+// "Follow the cursor": after the cursor has stayed on another screen for a moment, move there.
+let followSince = 0;
+function followCursorScreen(p) {
+  if (Number(config.get().display) !== -1 || pointerInside || typingInIsland) { followSince = 0; return; }
+  const d = screen.getDisplayNearestPoint(p);
+  if (followDisplay && d.id === followDisplay.id) { followSince = 0; return; }
+  if (!followSince) { followSince = Date.now(); return; }
+  if (Date.now() - followSince < 700) return;
+  followSince = 0;
+  followDisplay = d;
+  placeWindow();
 }
 
 // Typing in the island (notes, calculator, serial) needs a focusable window for a moment.
@@ -887,6 +1099,11 @@ ipcMain.handle('island:init', () => ({
     shelf: shelf ? shelf.snapshot() : null,
     privacy: privacyState,
     calendar: calendar ? calendar.state : null,
+    timers: timers ? timers.snapshot() : null,
+    weather: weather ? weather.state : null,
+    tokens: tokens ? tokens.state : null,
+    usageHistory: usageHist ? usageHist.get() : null,
+    plugins: plugins ? plugins.list.filter((p) => (config.get().pluginsEnabled || {})[p.id]) : [],
   },
 }));
 
@@ -984,7 +1201,7 @@ const CALLS = {
   notes: {
     set: (text) => { notes.set({ text: String(text || '').slice(0, 20000) }); return true; },
   },
-  usage: { refresh: () => usage.refresh() },
+  usage: { refresh: () => usage.refresh(), tokens: () => tokens.refresh() },
   volume: {
     set: (v) => sysVol.set(v),
     toggleMute: () => sysVol.toggleMute(),
@@ -998,10 +1215,48 @@ const CALLS = {
       }
     },
   },
+  plugins: {
+    list: () => ({ dir: plugins.dir, plugins: plugins.scan().map((p) => ({ ...p, enabled: !!(config.get().pluginsEnabled || {})[p.id] })) }),
+    setEnabled: ({ id, on }) => {
+      const en = { ...(config.get().pluginsEnabled || {}) };
+      if (on) en[String(id)] = true; else delete en[String(id)];
+      config.set({ pluginsEnabled: en });
+      setTimeout(() => { if (win && !win.isDestroyed()) win.webContents.reload(); }, 300);
+      return true;
+    },
+    openDir: () => { plugins.scan(); shell.openPath(plugins.dir); return plugins.dir; },
+    installExample: () => {
+      const id = plugins.install(path.join(__dirname, 'plugins-example', 'doviz'));
+      config.set({ pluginsEnabled: { ...(config.get().pluginsEnabled || {}), [id]: true } });
+      setTimeout(() => { if (win && !win.isDestroyed()) win.webContents.reload(); }, 300);
+      return id;
+    },
+    // small helpers a plugin can use
+    fetch: async ({ url }) => {
+      const u = new URL(String(url));
+      if (u.protocol !== 'https:') throw new Error('Sadece https');
+      const ac = new AbortController();
+      const t = setTimeout(() => ac.abort(), 10000);
+      try {
+        const res = await net.fetch(u.href, { signal: ac.signal, headers: { 'User-Agent': 'Ada-plugin' } });
+        const text = (await res.text()).slice(0, 1024 * 1024);
+        return { status: res.status, text };
+      } finally { clearTimeout(t); }
+    },
+    load: (id) => plugins.load(String(id)),
+    save: ({ id, data }) => plugins.save(String(id), data),
+  },
   claude: {
     reply: ({ sessionId, text }) => server.sendReply(String(sessionId), String(text || '')),
     hold: (sessionId) => server.holdReply(String(sessionId)),
     release: (sessionId) => server.releaseReply(String(sessionId)),
+    desktopReply: async (text) => {
+      const t = String(text || '').trim().slice(0, 4000);
+      if (!t || !winctl) return false;
+      const ok = await winctl.paste(['claude'], t);
+      if (ok) server.clearDesktopPermission();
+      return ok;
+    },
   },
   shelf: {
     add: (paths) => shelf.add(paths),
@@ -1014,6 +1269,59 @@ const CALLS = {
     cmd: ({ c, id, ms }) => media.command(String(c), String(id), Number(ms) || 0),
     transport: (name) => transport(['toggle', 'next', 'prev'].includes(name) ? name : 'toggle'),
     lyrics: (t) => lyrics.get(cleanMediaTrack(t || {})),
+  },
+  picker: { color: () => pickColorToIsland() },
+  qr: {
+    make: (text) => makeQr(text),
+    copy: () => { if (!lastQr) return false; clipboard.writeImage(nativeImage.createFromDataURL(lastQr.url)); return true; },
+    save: () => {
+      if (!lastQr) return false;
+      const d = new Date();
+      const out = path.join(app.getPath('desktop'), `ada-qr-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}${String(d.getSeconds()).padStart(2, '0')}.png`);
+      fs.writeFileSync(out, nativeImage.createFromDataURL(lastQr.url).toPNG());
+      shell.showItemInFolder(out);
+      return path.basename(out);
+    },
+  },
+  palette: {
+    apps: async () => (await apps.load()).map((a) => a.name),
+    icon: (name) => apps.icon(String(name)),
+    launch: (name) => apps.launch(String(name), shell),
+    web: (q) => { shell.openExternal(`https://www.google.com/search?q=${encodeURIComponent(String(q).slice(0, 300))}`); return true; },
+    copy: (text) => { clipboard.writeText(String(text).slice(0, 10000)); return true; },
+    note: (text) => {
+      const cur = notes.get().text || '';
+      const d = new Date();
+      const stamp = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      const next = `${cur.replace(/\s+$/, '')}${cur.trim() ? '\n' : ''}• ${String(text).trim()} (${stamp})`;
+      notes.set({ text: next.slice(-20000) });
+      mod('notes', notes.get());
+      return true;
+    },
+    play: ({ uri, albumUri }) => musicDo('playTrack', { uri, albumUri }),
+    set: (patch) => applySettings(patch),
+    hide: () => { if (!hidden) toggleHidden(); return true; },
+    diag: () => writeDiagnostics(),
+  },
+  weather: {
+    find: (name) => weather.find(String(name || '').slice(0, 80)),
+    set: (place) => {
+      const p = place && Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lon))
+        ? { name: String(place.name || '').slice(0, 80), admin: String(place.admin || '').slice(0, 80), country: String(place.country || '').slice(0, 80), lat: Number(place.lat), lon: Number(place.lon) }
+        : null;
+      config.set({ weatherPlace: p });
+      weather.setPlace(p);
+      weather.start();
+      return p;
+    },
+    refresh: () => weather.refresh(),
+  },
+  timers: {
+    add: (t) => timers.add(t || {}),
+    remove: (id) => timers.remove(String(id)),
+    snooze: ({ id, min }) => timers.snooze(String(id), Math.max(1, Math.min(60, Number(min) || 5))),
+    pause: (id) => timers.togglePause(String(id)),
+    addTime: ({ id, ms }) => timers.addTime(String(id), Math.max(-3600000, Math.min(3600000, Number(ms) || 60000))),
   },
   calendar: {
     refresh: () => calendar.refresh(),
@@ -1032,6 +1340,36 @@ const CALLS = {
       return r || { none: true };
     },
     open: () => updater.latest && shell.openExternal(updater.latest.url),
+    page: () => updater.latest && shell.openExternal(updater.latest.page),
+    // one click: download, check, install silently, restart on the new version
+    install: async () => {
+      const u = updater.latest;
+      if (!u) return { error: 'Yeni sürüm bilgisi yok' };
+      if (process.platform !== 'win32' || !u.installer) { shell.openExternal(u.url); return { opened: true }; }
+      if (updateBusy) return { busy: true };
+      updateBusy = true;
+      const push = (st) => mod('update', { ...u, ...st });
+      push({ stage: 'downloading', pct: 0 });
+      try {
+        const file = await downloadUpdate(u, path.join(app.getPath('temp'), 'ada-update'), {
+          fetch: (...a) => net.fetch(...a),
+          onProgress: (pct) => push({ stage: 'downloading', pct }),
+        });
+        push({ stage: 'installing' });
+        config.set({ updatedFrom: app.getVersion() });
+        diag('update', `kuruluyor ${u.version}`);
+        setTimeout(() => {
+          // NSIS: /S = silent, --force-run = start Ada again when done
+          require('child_process').spawn(file, ['/S', '--force-run'], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+          app.quit();
+        }, 1200);
+        return { installing: true };
+      } catch (e) {
+        updateBusy = false;
+        push({ stage: 'error', error: e.message });
+        return { error: e.message };
+      }
+    },
   },
 };
 
@@ -1063,18 +1401,20 @@ ipcMain.handle('settings:get', () => ({
 const SETTABLE = {
   sound: 'bool', notifications: 'bool', desktopWatcher: 'bool', hideFullscreen: 'bool', sleepy: 'bool',
   albumColor: 'bool', glass: 'bool', visualizer: 'bool', media: 'bool', shortcuts: 'bool', clipboard: 'bool', translateLyrics: 'bool',
-  privacyDots: 'bool', deviceCards: 'bool', quickReply: 'int', calendarUrl: 'url', calendarReminder: 'int',
+  weatherRest: 'bool', privacyDots: 'bool', deviceCards: 'bool', quickReply: 'int', calendarUrl: 'url', calendarReminder: 'int',
   skin: ['slate', 'black'], accent: ['deniz', 'gok', 'lila', 'mercan', 'fener', 'yosun', 'pembe', 'windows'],
-  position: ['center', 'left', 'right'], display: 'int', scale: 'num', summaryTime: 'hm', classReminder: 'int', updateRepo: 'repo',
+  position: ['center', 'left', 'right'], display: 'display', dragX: 'drag', scale: 'num', summaryTime: 'hm', classReminder: 'int', updateRepo: 'repo',
 };
 
-ipcMain.handle('settings:set', (_e, patch) => {
+function applySettings(patch) {
   const clean = {};
   for (const [k, v] of Object.entries(patch || {})) {
     const t = SETTABLE[k];
     if (!t) continue;
     if (t === 'bool') clean[k] = !!v;
     else if (t === 'int') clean[k] = Math.max(0, Math.round(Number(v) || 0));
+    else if (t === 'display') clean[k] = Math.max(-1, Math.round(Number(v) || 0));
+    else if (t === 'drag') clean[k] = Math.max(-5000, Math.min(5000, Math.round(Number(v) || 0)));
     else if (t === 'num') clean[k] = Math.max(0.8, Math.min(1.3, Number(v) || 1));
     else if (t === 'hm') clean[k] = /^\d{1,2}:\d{2}$/.test(v) || v === '' ? v : config.get()[k];
     else if (t === 'repo') clean[k] = /^[\w.-]+\/[\w.-]+$/.test(v) || v === '' ? v : config.get()[k];
@@ -1093,13 +1433,16 @@ ipcMain.handle('settings:set', (_e, patch) => {
     else { privacy.stop(); privacyState = { cam: [], mic: [] }; mod('privacy', privacyState); }
   }
   if ('media' in clean) clean.media ? media.start() : (media.stop(), media.state = { available: false, current: '', sessions: [] }, media.push());
-  if ('position' in clean || 'display' in clean || 'scale' in clean) placeWindow();
+  if ('display' in clean) followDisplay = null;
+  if ('position' in clean && clean.position !== 'center') config.set({ dragX: 0 });
+  if ('position' in clean || 'display' in clean || 'scale' in clean || 'dragX' in clean) placeWindow();
   if ('updateRepo' in clean) { updater.setRepo(clean.updateRepo); updater.start(); }
   if ('loginAtStart' in (patch || {})) app.setLoginItemSettings({ openAtLogin: !!patch.loginAtStart });
   send('island:config', publicConfig());
   refreshTrayMenu();
   return config.get();
-});
+}
+ipcMain.handle('settings:set', (_e, patch) => applySettings(patch));
 
 ipcMain.handle('spotify:connect', async (_e, clientId) => {
   try {
@@ -1129,6 +1472,13 @@ ipcMain.on('app:open', (_e, url) => {
 // ================================================================= lifecycle
 app.whenReady().then(() => {
   config.load(app.getPath('userData'));
+  plugins = new Plugins(app.getPath('userData'));
+  plugins.scan();
+  protocol.handle('ada-plugin', (req) => {
+    const f = plugins.resolve(req.url, config.get().pluginsEnabled || {});
+    if (!f) return new Response('', { status: 404 });
+    return net.fetch(pathToFileURL(f).toString());
+  });
   createWindow();
   try { systemPreferences.on('accent-color-changed', () => send('island:config', publicConfig())); } catch { /* not on this OS */ }
 
@@ -1203,6 +1553,9 @@ app.on('before-quit', () => {
   if (usage) usage.stop();
   if (updater) updater.stop();
   if (calendar) calendar.stop();
+  if (weather) weather.stop();
   if (watch) watch.flushFocus();
-  for (const s of [schedule, notes, stats && stats.store, pomo && pomo.store, shelf && shelf.store]) if (s) s.saveNow();
+  for (const s of [schedule, notes, stats && stats.store, pomo && pomo.store, shelf && shelf.store, timers && timers.store, usageHist]) if (s) s.saveNow();
+  if (tokens) tokens.stop();
+  if (timers) timers.stop();
 });

@@ -1,0 +1,9 @@
+{
+  "id": "doviz",
+  "name": "Döviz",
+  "version": "1.0.0",
+  "description": "Dolar, euro ve sterlinin TL karşılığı; hızlı çevirici. Kurlar Avrupa Merkez Bankası'ndan (frankfurter.app), günde bir güncellenir.",
+  "author": "Ada",
+  "main": "tab.js",
+  "style": "style.css"
+}

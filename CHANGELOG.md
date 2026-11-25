@@ -6,12 +6,25 @@ Her sürüm etiketinde GitHub Actions bu dosyadaki ilgili bölümü sürüm notl
 
 ## [Yayınlanmamış]
 
+## [0.7.0] - 2026-11-25
+
 ### Eklendi
+- **Komut çubuğu** (`Ctrl+Alt+Boşluk`): ada bir arama kutusuna dönüşür. Uygulama aç, hesap yap, birim çevir, sayaç ya da alarm kur, Spotify'da şarkı ara ve çal, not al, ayar değiştir, sekme aç, Google'da ara.
+- **Sayaç ve alarm:** "15 dk çay", "7:30 kalk" gibi yazılır; birkaç tanesi aynı anda çalışır, duraklatılır, ertelenir. Odak sekmesinde **Sayaç** modu; Ada kapalıyken dolan alarm açılışta çalar.
+- **Tek tıkla güncelleme:** yeni sürüm kartında **Güncelle**; Ada kurulum dosyasını indirir, boyutunu ve GitHub'ın sha256 özetini doğrular, sessizce kurar ve yeniden açılır.
+- **Hava durumu** (Open-Meteo): fenerin yanında sıcaklık, fenerde yağmur / kar / fırtına / sis; Sistem sekmesinde şu an ve 3 gün.
+- **Renk seçici** (`Ctrl+Alt+C`): büyüteçle ekrandan renk; HEX / RGB / HSL kopyalama.
+- **QR kod:** panodaki ya da yazılan metinden; resmi kopyala ya da kaydet.
+- **Claude Desktop'a hızlı yanıt:** iş bitince çıkan karttan yazılan yanıt Desktop penceresine gönderilir.
+- **Kullanım grafiği:** Claude sekmesinde son 7 günün günlük token kullanımı, haftalık limit geçmişi, en çok çalışılan projeler.
+- **Adayı sürükleyerek taşıma** ve **imlecin olduğu ekranı takip etme**.
+- **Eklenti sistemi:** `plugins` klasöründen sekme yükleme, örnek Döviz eklentisi, [`PLUGINS.md`](PLUGINS.md).
 - Birim testleri (`npm test`) ve her gönderide çalışan GitHub Actions kontrolü.
 - Hata, öneri ve PR şablonları; `CONTRIBUTING.md`.
 - İngilizce README (`README.en.md`).
 
 ### Değişti
+- Müziği oynat / duraklat kısayolu `Ctrl+Alt+Enter` oldu; `Ctrl+Alt+Boşluk` artık komut çubuğunu açar.
 - Sürüm notları artık bu dosyadan otomatik dolduruluyor.
 - `docs/` görselleri kayıpsız sıkıştırıldı.
 

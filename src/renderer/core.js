@@ -84,16 +84,27 @@
   // ------------------------------------------------------------ public API for tabs
   const Ada = {
     S, ui, I, esc, $, $$, mmss, ago, live, primarySession,
-    island, inner,
-    tab(def) { tabs.push(def); },
+    island, inner, tabs,
+    tab(def) {
+      if (tabs.some((t) => t.id === def.id)) return;
+      tabs.push(def);
+      // a plugin's tab arrives after start-up: give it its init and show it
+      if (started) { try { if (def.init) def.init(); } catch (e) { console.error(e); } render(); }
+    },
     render: () => render(),
     toast: (t) => toast(t),
     chime: (k) => chime(k),
     showCard: (c) => { card = c; render(); },
+    closeCard: () => { card = null; render(); },
     holdOpen: (on) => { ui.holdOpen = !!on; },
   };
+  let started = false;
   const eventListeners = [];
+  const pillProviders = [];
+  Ada.addPill = (p) => pillProviders.push(p);
   Ada.onEvent = (fn) => eventListeners.push(fn);
+  const actHandlers = [];
+  Ada.onAct = (fn) => actHandlers.push(fn);
   window.Ada = Ada;
 
   // ------------------------------------------------------------ cards
@@ -189,6 +200,14 @@
     ['Açıkla', 'Ne yaptığını kısaca, maddeler hâlinde açıkla.'],
     ['Commit at', 'Değişiklikleri anlamlı bir mesajla commit et.'],
   ];
+  // Claude Desktop is a chat: other quick answers fit better there
+  const QUICK_CHAT = [
+    ['Devam et', 'Devam et.'],
+    ['Daha kısa', 'Daha kısa ve öz anlatır mısın?'],
+    ['Örnek ver', 'Bir örnekle açıklar mısın?'],
+    ['Teşekkürler', 'Teşekkürler!'],
+  ];
+  const quickFor = (d) => (d && d.desktop ? QUICK_CHAT : QUICK);
   function viewDone(d) {
     if (d.replyUntil && Date.now() < d.replyUntil) {
       const left = Math.max(0, Math.ceil((d.replyUntil - Date.now()) / 1000));
@@ -200,7 +219,7 @@
             <button class="ic xs" data-act="dismiss" data-id="${esc(d.sessionId)}" title="Kapat">${I.x}</button></div>
           ${d.summary ? `<p class="msg clamp3">${esc(d.summary)}</p>` : ''}
           <div class="qr">
-            ${QUICK.map(([label], i) => `<button class="opt" data-act="qr" data-id="${i}">${label}</button>`).join('')}
+            ${quickFor(d).map(([label], i) => `<button class="opt" data-act="qr" data-id="${i}">${label}</button>`).join('')}
           </div>
           <input type="text" class="qr-in" data-qreply="1" placeholder="Claude'a yanıt yaz… (Enter ile gönder)" spellcheck="false" autocomplete="off" aria-label="Claude'a yanıt">
         </div>`,
@@ -222,7 +241,7 @@
   // ------------------------------------------------------------ the lighthouse (Ada's mascot)
   // mood: idle | working | waiting | done | sleep
   function lighthouse(mood, extra = {}) {
-    return `<span class="fener" data-mood="${mood}" data-tod="${extra.tod || 'day'}" data-exam="${extra.exam ? 1 : 0}" data-act="fener" data-morph="glyph" aria-hidden="true">
+    return `<span class="fener" data-mood="${mood}" data-tod="${extra.tod || 'day'}" data-exam="${extra.exam ? 1 : 0}" data-wx="${extra.wx || ''}" data-act="fener" data-morph="glyph" aria-hidden="true">
       <svg viewBox="-8 0 40 24">
         <defs>
           <linearGradient id="beamL" x1="1" x2="0"><stop offset="0" stop-color="var(--lamp)" stop-opacity=".55"/><stop offset="1" stop-color="var(--lamp)" stop-opacity="0"/></linearGradient>
@@ -242,6 +261,11 @@
         <rect class="base" x="7.2" y="21" width="9.6" height="1.6" rx=".8"/>
         <circle class="spark" cx="18.5" cy="3" r="1.1"/>
         <path class="drop" d="M17.2 5.6q1.3 1.7 0 2.6q-1.3 -.9 0 -2.6z"/>
+        <g class="wx-rain"><path d="M-4 -2l-1 3"/><path d="M1 -4l-1 3"/><path d="M21 -1l-1 3"/><path d="M25 2l-1 3"/><path d="M-1 6l-1 3"/><path d="M23 8l-1 3"/></g>
+        <g class="wx-snow"><circle cx="-4" cy="-2" r=".9"/><circle cx="1" cy="-4" r=".8"/><circle cx="21" cy="-1" r=".9"/><circle cx="25" cy="2" r=".8"/><circle cx="-1" cy="7" r=".8"/><circle cx="23" cy="9" r=".9"/></g>
+        <path class="wx-bolt" d="M23.5 1l-2.5 4h2l-1.5 4 3.8-5.5h-2l1.2-2.5z"/>
+        <g class="wx-fog"><path d="M-7 15h12"/><path d="M19 17h12"/><path d="M-4 19.5h10"/></g>
+        <path class="wx-cloud" d="M19.5 5a2.3 2.3 0 0 1 0-4.6a3.2 3.2 0 0 1 6.1 .9a1.9 1.9 0 0 1 .2 3.7z"/>
         <text class="zz" x="16.5" y="5">z</text>
       </svg>
     </span>`;
@@ -260,14 +284,21 @@
     const tomorrow = new Date(d); tomorrow.setDate(d.getDate() + 1);
     const exams = (S.mods.schedule && S.mods.schedule.exams) || [];
     const exam = exams.some((x) => x.date === iso(d) || x.date === iso(tomorrow));
-    return { tod, exam };
+    const w = S.mods.weather;
+    const wx = w && w.now && S.config.weatherRest !== false ? w.now.kind : '';
+    return { tod, exam, wx };
+  }
+  function wxHtml() {
+    const w = S.mods.weather;
+    if (!w || !w.now || S.config.weatherRest === false) return '';
+    return `<span class="wx" title="${esc(`${w.place ? w.place.name + ' · ' : ''}${w.now.text} · hissedilen ${w.now.feels}°`)}">${w.now.temp}°</span>`;
   }
   Ada.scene = scene;
 
   function viewRest() {
     const dots = privacyHtml();
-    const sleepy = !dots && S.config.sleepy !== false && Date.now() - ui.lastActivity > 90 * 1000;
-    return { mode: sleepy ? 'rest sleepy' : 'rest', status: 'idle', html: `<div class="rest ${dots ? 'has-priv' : ''}">${lighthouse(sleepy ? 'sleep' : 'idle', scene())}${dots}</div>` };
+    const sleepy = !dots && !wxHtml() && S.config.sleepy !== false && Date.now() - ui.lastActivity > 90 * 1000;
+    return { mode: sleepy ? 'rest sleepy' : 'rest', status: 'idle', html: `<div class="rest ${dots ? 'has-priv' : ''} ${wxHtml() ? 'has-wx' : ''}">${lighthouse(sleepy ? 'sleep' : 'idle', scene())}${wxHtml()}${dots}</div>` };
   }
 
   // camera / microphone in use (Windows privacy indicator): small dots next to the island's content
@@ -324,6 +355,7 @@
     if (S.claude.permissions.length) return viewPermission(S.claude.permissions[0]);
     const q = S.claude.sessions.find((s) => s.status === 'question' && s.question);
     if (q) return viewQuestion(q);
+    if (Ada.paletteView) { const pv = Ada.paletteView(); if (pv) return pv; }
     if (doneCard && Date.now() < doneCard.until) return viewDone(doneCard);
     if (card && (card.sticky || Date.now() < card.until)) return viewInfoCard(card);
     if (ui.hovered) return viewPanel();
@@ -333,8 +365,8 @@
     };
     const p = primarySession();
     if (p && live(p)) return withPriv(viewPill(p));
-    // tabs may offer a collapsed pill (pomodoro, class reminder, music) in priority order
-    for (const t of [...tabs].sort((a, b) => (a.pillRank || 99) - (b.pillRank || 99))) {
+    // tabs (and other pill providers) may offer a collapsed pill in priority order
+    for (const t of [...tabs, ...pillProviders].sort((a, b) => (a.pillRank || 99) - (b.pillRank || 99))) {
       const v = t.pill && t.pill();
       if (v) return withPriv({ mode: 'pill', key: 'pill:' + t.id, ...v });
     }
@@ -486,6 +518,26 @@
     bump.t = setTimeout(() => island.classList.remove('bump'), 560);
   }
 
+  // ------------------------------------------------------------ update card: offer → download → install
+  function updateCardHtml(u) {
+    const head = (what) => `<div class="card-head"><span class="glyph" data-s="done"></span><span class="proj">Ada ${esc(u.version)}</span><span class="what">${what}</span></div>`;
+    if (u.stage === 'downloading') {
+      const pct = Math.round((u.pct || 0) * 100);
+      return `${head('indiriliyor')}
+        <div class="upd-bar" data-region="updbar"><b data-w="${pct}"></b><span>%${pct}</span></div>`;
+    }
+    if (u.stage === 'installing') {
+      return `${head('kuruluyor')}<p class="msg"><span class="spin" aria-hidden="true"></span> Ada birkaç saniye kapanıp yeni sürümle yeniden açılacak.</p>`;
+    }
+    if (u.stage === 'error') {
+      return `${head('güncellenemedi')}<p class="msg">${esc(u.error || '')}</p>
+        <div class="actions"><button class="btn-allow sm" data-act="updateInstall">Tekrar dene</button><button class="btn-text sm" data-act="updateOpen">Tarayıcıda indir</button><button class="btn-text sm" data-act="closeCard">Kapat</button></div>`;
+    }
+    return `${head('yeni sürüm hazır')}
+      ${u.notes ? `<p class="msg">${esc(u.notes)}</p>` : ''}
+      <div class="actions"><button class="btn-allow" data-act="updateInstall">Güncelle</button><button class="btn-text" data-act="updatePage">Yenilikler</button><button class="btn-text" data-act="closeCard">Sonra</button></div>`;
+  }
+
   // ------------------------------------------------------------ event effects
   // Drawn in #fx, a click-through layer around the island: a ring of light, a shine sweep, confetti.
   const fxEl = document.getElementById('fx');
@@ -554,11 +606,12 @@
   // ------------------------------------------------------------ sound
   let actx = null;
   function chime(kind) {
-    if (!S.config.sound) return;
+    // an alarm rings even with sounds turned off: ringing is its whole job
+    if (!S.config.sound && kind !== 'alarm') return;
     try {
       actx = actx || new AudioContext();
-      const seq = kind === 'done' ? [659.25, 987.77] : kind === 'pomo' ? [523.25, 659.25, 783.99] : [880, 880];
-      const gap = kind === 'done' ? 0.12 : kind === 'pomo' ? 0.16 : 0.18;
+      const seq = kind === 'done' ? [659.25, 987.77] : kind === 'pomo' ? [523.25, 659.25, 783.99] : kind === 'alarm' ? [783.99, 987.77, 783.99, 987.77, 1174.66] : [880, 880];
+      const gap = kind === 'done' ? 0.12 : kind === 'pomo' ? 0.16 : kind === 'alarm' ? 0.15 : 0.18;
       const t0 = actx.currentTime;
       seq.forEach((f, i) => {
         const o = actx.createOscillator();
@@ -723,6 +776,37 @@
   setInterval(reportRect, 100);
   Ada.afterPointerAction = () => { ada.hold(ui.drag || ui.holdOpen); if (!ui.pointer && !ui.holdOpen) closePanel(); };
 
+  // ------------------------------------------------------------ drag the island sideways
+  // Hold an empty part of the island and move the mouse: the window follows along the top edge.
+  const NODRAG = 'button, input, textarea, select, a, [data-act]:not(.fener), [data-seek], [data-vol], canvas, [draggable="true"], .lyrics, .pal-list, .sh-grid, .hist, .rows, .list, .tms, .laps';
+  let dragTry = null;
+  island.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || e.target.closest(NODRAG)) return;
+    dragTry = { x: e.screenX, id: e.pointerId, on: false };
+  }, true);
+  window.addEventListener('pointermove', (e) => {
+    if (!dragTry || dragTry.on || Math.abs(e.screenX - dragTry.x) < 7) return;
+    dragTry.on = true;
+    ui.drag = true;
+    island.classList.add('moving');
+    ada.hold(true);
+    ada.drag('start');
+    try { island.setPointerCapture(dragTry.id); } catch { /* not capturable */ }
+  });
+  const endDrag = () => {
+    if (!dragTry) return;
+    const was = dragTry.on;
+    dragTry = null;
+    if (!was) return;
+    ada.drag('end');
+    island.classList.remove('moving');
+    ui.drag = false;
+    ada.hold(false);
+    render();
+  };
+  window.addEventListener('pointerup', endDrag);
+  window.addEventListener('pointercancel', endDrag);
+
   // Inputs: make the window focusable only while typing.
   island.addEventListener('mousedown', (e) => {
     const field = e.target.closest('input[type="text"], input[type="search"], textarea');
@@ -812,13 +896,16 @@
     }
     if (act === 'settings') { ada.openSettings(id || ''); return; }
     if (act === 'dismiss') {
-      if (doneCard && doneCard.replyUntil) ada.call('claude', 'release', id);
+      if (doneCard && doneCard.replyUntil && !doneCard.desktop) ada.call('claude', 'release', id);
       if (ui.holdOpen) { const a = document.activeElement; if (a && a.blur) a.blur(); }
       ada.dismiss(id); doneCard = null; render(); return;
     }
-    if (act === 'qr') { sendQuickReply(QUICK[Number(id)][1]); return; }
+    if (act === 'qr') { const q = quickFor(doneCard)[Number(id)]; if (q) sendQuickReply(q[1]); return; }
     if (act === 'closeCard') { card = null; render(); return; }
     if (act === 'updateOpen') { ada.call('update', 'open'); card = null; render(); return; }
+    if (act === 'updateInstall') { ada.call('update', 'install'); return; }
+    if (act === 'updatePage') { ada.call('update', 'page'); return; }
+    if (act === 'updatedNotes') { ada.open(id); card = null; render(); return; }
     if (act === 'allow' || act === 'deny' || act === 'ask') {
       ada.decide(id, act);
       S.claude.permissions = S.claude.permissions.filter((p) => p.id !== id);
@@ -826,6 +913,8 @@
       return;
     }
     if (act === 'pick' || act === 'sendAnswers' || act === 'askTerminal') return onAnswer(act, el);
+    if (Ada.paletteAct && Ada.paletteAct(act, id)) return;
+    for (const fn of actHandlers) if (fn(act, id, el, e) === true) return;
     // let the tab that owns the current view handle it
     for (const t of tabs) {
       if (t.onAct && t.onAct(act, id, el, e) === true) return;
@@ -835,8 +924,15 @@
   async function sendQuickReply(text) {
     if (!doneCard || !text.trim()) return;
     const d = doneCard;
-    const r = await ada.call('claude', 'reply', { sessionId: d.sessionId, text });
     if (ui.holdOpen) { const a = document.activeElement; if (a && a.blur) a.blur(); }
+    if (d.desktop) {
+      doneCard = null;
+      render();
+      const r2 = await ada.call('claude', 'desktopReply', text);
+      toast(r2.ok && r2.result ? { kind: 'info', text: "Claude Desktop'a gönderildi" } : { kind: 'error', text: 'Claude Desktop penceresi bulunamadı' });
+      return;
+    }
+    const r = await ada.call('claude', 'reply', { sessionId: d.sessionId, text });
     if (r.ok && r.result) {
       doneCard = null;
       toast({ kind: 'info', text: "Claude'a iletildi" });
@@ -850,6 +946,7 @@
   island.addEventListener('focusin', (e) => {
     if (!e.target.matches('[data-qreply]') || !doneCard) return;
     const d = doneCard;
+    if (d.desktop) { d.replyUntil = Date.now() + 120000; d.until = d.replyUntil; return; }
     ada.call('claude', 'hold', d.sessionId).then((r) => {
       if (r.ok && r.result && doneCard === d) { d.replyUntil = r.result; d.until = Math.max(d.until, r.result); }
     });
@@ -904,18 +1001,19 @@
       flash('done');
       shine();
       doneCard = {
-        id: Date.now(), sessionId: ev.sessionId, project: ev.project, summary: ev.summary,
+        id: Date.now(), sessionId: ev.sessionId, project: ev.project, summary: ev.summary, desktop: !!ev.desktop,
         replyUntil: ev.replyUntil || 0, until: Math.max(Date.now() + 7000, ev.replyUntil || 0),
       };
       bump();
     }
-    if (ev.type === 'update') {
+    if (ev.type === 'update') card = { key: 'update', status: 'done', sticky: true, html: updateCardHtml(ev) };
+    if (ev.type === 'updated') {
       card = {
-        key: 'update' + ev.version, status: 'done', sticky: true,
-        html: `<div class="card-head"><span class="glyph" data-s="done"></span><span class="proj">Ada ${esc(ev.version)}</span><span class="what">yeni sürüm hazır</span></div>
-          ${ev.notes ? `<p class="msg">${esc(ev.notes.split('\n')[0])}</p>` : ''}
-          <div class="actions"><button class="btn-allow" data-act="updateOpen">İndir</button><button class="btn-text" data-act="closeCard">Sonra</button></div>`,
+        key: 'updated', status: 'done', until: Date.now() + 9000,
+        html: `<div class="card-head"><span class="glyph" data-s="done"></span><span class="proj">Ada ${esc(ev.version)}</span><span class="what">güncellendi</span></div>
+          <div class="actions"><button class="btn-allow sm" data-act="updatedNotes" data-id="${esc(ev.page)}">Yenilikler</button><button class="btn-text sm" data-act="closeCard">Kapat</button></div>`,
       };
+      flash('done');
     }
     if (ev.type === 'summary' && ev.stats) {
       const d = ev.stats.today;
@@ -938,13 +1036,34 @@
     render();
   });
   ada.on('music:state', (m) => { S.music = m; for (const t of tabs) if (t.onMusic) t.onMusic(m); render(); });
-  ada.on('mod:state', ({ mod, data }) => { S.mods[mod] = data; for (const t of tabs) if (t.onMod) t.onMod(mod, data); render(); });
+  ada.on('mod:state', ({ mod, data }) => {
+    S.mods[mod] = data;
+    if (mod === 'update' && card && card.key === 'update' && data) card.html = updateCardHtml(data);
+    for (const t of tabs) if (t.onMod) t.onMod(mod, data);
+    render();
+  });
   ada.on('island:toast', toast);
   ada.on('island:config', (c) => { S.config = c; applyBodyConfig(c); for (const t of tabs) if (t.onConfig) t.onConfig(c); render(); });
   ada.on('island:expand', () => {
     openPanel();
     setTimeout(() => { if (!island.matches(':hover')) closePanel(); }, 5000);
   });
+
+  // Plugins the user turned on in Settings: their stylesheet and script, from ada-plugin://
+  function loadPlugins(list) {
+    for (const p of list) {
+      if (p.style) {
+        const l = document.createElement('link');
+        l.rel = 'stylesheet';
+        l.href = `ada-plugin://${p.id}/${p.style}`;
+        document.head.appendChild(l);
+      }
+      const sc = document.createElement('script');
+      sc.src = `ada-plugin://${p.id}/${p.main}`;
+      sc.onerror = () => toast({ kind: 'error', text: `Eklenti yüklenemedi: ${p.name}` });
+      document.body.appendChild(sc);
+    }
+  }
 
   document.addEventListener('DOMContentLoaded', () => {
     ada.init().then(({ config, state, music, mods }) => {
@@ -953,7 +1072,9 @@
       if (music) S.music = music;
       if (mods) Object.assign(S.mods, mods);
       for (const t of tabs) if (t.init) t.init();
+      started = true;
       render();
+      loadPlugins((mods && mods.plugins) || []);
     });
   });
 })();

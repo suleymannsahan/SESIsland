@@ -113,3 +113,9 @@ input[type="range"] { width: 260px; accent-color: var(--yosun); }
 .sw-mercan { background: #f07c6b; } .sw-fener { background: #f2b544; } .sw-yosun { background: #9bd17a; }
 .sw-windows { background: linear-gradient(135deg, #0078d4, #6aa8f7); color: #fff !important; }
 .row-inline input[type="range"] { width: 200px; }
+.wx-results { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.wx-pick { font-size: 12.5px; }
+.wx-results { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.wx-pick { font-size: 12.5px; }
+.plugin-list { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+.plugin-row em { font-style: normal; color: var(--mist, #93a3b4); font-size: 12px; }

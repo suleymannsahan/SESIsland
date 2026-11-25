@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src data:">
+  <title>Renk seç</title>
+  <link rel="stylesheet" href="picker.css">
+</head>
+<body>
+  <canvas id="shot"></canvas>
+  <div id="loupe" hidden><canvas id="zoom" width="132" height="132"></canvas><span id="hex"></span></div>
+  <div id="help">Rengi almak için tıkla · ok tuşlarıyla 1 piksel kaydır · Esc: vazgeç</div>
+  <script src="picker.js"></script>
+</body>
+</html>
