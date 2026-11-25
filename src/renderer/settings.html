@@ -16,6 +16,7 @@
     <a href="#eklentiler">Eklentiler</a>
     <a href="#claude">Claude</a>
     <a href="#gorunum">Görünüm</a>
+    <a href="#fener">Fener ve sesler</a>
     <a href="#kisayol">Kısayollar</a>
     <a href="#genel">Genel</a>
     <a href="#guncelleme">Güncellemeler</a>
@@ -183,6 +184,8 @@
       <div class="seg" role="radiogroup" aria-label="Tema">
         <label><input type="radio" name="skin" value="slate"><span>Gece mavisi</span></label>
         <label><input type="radio" name="skin" value="black"><span>Siyah</span></label>
+        <label><input type="radio" name="skin" value="light"><span>Açık</span></label>
+        <label><input type="radio" name="skin" value="auto"><span>Windows'a göre</span></label>
       </div>
       <span class="sub-l">Vurgu rengi</span>
       <div class="swatches" role="radiogroup" aria-label="Vurgu rengi">
@@ -207,6 +210,9 @@
       <label class="toggle"><input type="checkbox" id="opt-hideFullscreen"><span>Tam ekran uygulamalarda gizlen <em>(oyun, film, sunum · izin istekleri yine görünür)</em></span></label>
       <label class="toggle"><input type="checkbox" id="opt-glass"><span>Buzlu cam görünüm <em>(hafif saydam)</em></span></label>
       <label class="toggle"><input type="checkbox" id="opt-sleepy"><span>Bir süre bir şey olmayınca küçül</span></label>
+      <label class="toggle"><input type="checkbox" id="opt-motion"><span>Canlı hareketler <em>(sıvı gibi açılma, imleç yaklaşınca öne eğilme, kayan rakamlar)</em></span></label>
+      <label class="toggle"><input type="checkbox" id="opt-edgeGlow"><span>Claude çalışırken kenarda dönen ışık</span></label>
+      <label class="toggle"><input type="checkbox" id="opt-wallTint"><span>Duvar kâğıdının rengini hafifçe al</span></label>
       <label class="toggle"><input type="checkbox" id="opt-albumColor"><span>Müzik çalarken albüm kapağının rengini al</span></label>
       <label class="toggle"><input type="checkbox" id="opt-visualizer"><span>Canlı ses dalgası <em>(bilgisayardan çıkan sese göre oynar · hiçbir şey kaydedilmez)</em></span></label>
       <label class="toggle"><input type="checkbox" id="opt-privacyDots"><span>Kamera / mikrofon kullanılırken adada nokta göster</span></label>
@@ -216,6 +222,28 @@
           <option value="0">kapalı</option><option value="10">%10</option><option value="15">%15</option><option value="20">%20</option><option value="30">%30</option>
         </select>
       </label>
+    </section>
+
+    <!-- ================================================= Fener ve sesler -->
+    <section id="fener" aria-labelledby="fe-h">
+      <h2 id="fe-h">Fener ve sesler</h2>
+      <label class="toggle"><input type="checkbox" id="opt-fenerMoods"><span>Fenerin tepkileri <em>(uzun çalışınca esner, Pomodoro'da odaklanır, izin isterken ışığı sana döner)</em></span></label>
+      <label class="toggle"><input type="checkbox" id="opt-seasons"><span>Mevsimler ve özel günler <em>(kışın kar, baharda çiçek, sonbaharda yaprak; yılbaşı, bayramlar, doğum günün)</em></span></label>
+      <label class="toggle"><input type="checkbox" id="opt-greeting"><span>Sabah selamı <em>(günün ilk açılışında hava, dersler ve etkinlikler)</em></span></label>
+      <div class="row-inline">
+        <label class="inline">Adın <input type="text" id="opt-userName" maxlength="30" placeholder="Windows'taki adın" spellcheck="false"></label>
+        <label class="inline">Doğum günün <input type="text" id="opt-birthday" maxlength="5" placeholder="GG.AA" spellcheck="false"></label>
+      </div>
+      <span class="sub-l">Ses paketi</span>
+      <div class="row-inline">
+        <div class="seg" role="radiogroup" aria-label="Ses paketi">
+          <label><input type="radio" name="soundPack" value="klasik"><span>Klasik</span></label>
+          <label><input type="radio" name="soundPack" value="yumusak"><span>Yumuşak</span></label>
+          <label><input type="radio" name="soundPack" value="mekanik"><span>Mekanik klavye</span></label>
+          <label><input type="radio" name="soundPack" value="bit"><span>8-bit</span></label>
+        </div>
+        <button class="ghost sm" id="sound-try">Dinle</button>
+      </div>
     </section>
 
     <!-- ================================================= Kısayollar -->
@@ -253,6 +281,7 @@
       <p id="up-msg" class="msg" role="status"></p>
     </section>
   </main>
+  <script src="sounds.js"></script>
   <script src="settings.js"></script>
 </body>
 </html>

@@ -194,8 +194,12 @@ Dosyaları adanın üstüne sürükleyip bırak; Ada onları rafta tutar. Sonra 
 - **Kamera / mikrofon noktası:** bir uygulama kamerayı kullanırken yeşil, mikrofonu kullanırken turuncu nokta yanar (üstüne gelince hangi uygulama olduğu yazar).
 - **Cihazlar:** Bluetooth kulaklık, fare, klavye, oyun kolu, telefon ya da USB bellek bağlanınca toplanmış adada adı ve pili varsa şarj göstergesi görünür. Bir cihazın ya da bilgisayarın pili seçtiğin seviyenin altına düşünce (Ayarlar → Görünüm) uyarı verir.
 - **Olay animasyonları:** iş bitince ışık halkası ve parlama, Pomodoro bitince konfeti, izin beklerken amber nabız.
-- **Tema:** gece mavisi ya da tamamen siyah ada, 7 vurgu rengi ya da Windows'un kendi rengi, Kompakt / Normal / Büyük boyut.
-- **Fener:** gece yıldızlar ve ay, sabah güneş doğar, sınavdan önceki gün terler, uyurken "z" çıkarır; yağmurda, karda, fırtınada hava da fenerde.
+- **Tema:** gece mavisi, tamamen siyah, açık ya da Windows'un açık/koyu moduna göre; 7 vurgu rengi ya da Windows'un kendi rengi, Kompakt / Normal / Büyük boyut. Ada duvar kâğıdının rengini hafifçe alır.
+- **Canlı hareketler:** ada açılırken bir damla gibi esner, imleç yaklaşınca öne eğilir, rakamlar kayarak değişir, sekmeler arasında içerik kayar. Claude çalışırken kenarında dönen bir ışık olur.
+- **Claude ve müzik birlikte:** Claude çalışırken çalan şarkı da toplanmış adanın sağında küçük kapağıyla görünür.
+- **Fener:** gece yıldızlar ve ay, sabah güneş doğar, sınavdan önceki gün terler, uyurken "z" çıkarır; yağmurda, karda, fırtınada hava da fenerde. Uzun süre çalışınca esner, Pomodoro'da odaklanır, izin isterken ışığını sana çevirir. Kışın çatısında kar, baharda çiçek, sonbaharda yaprak; yılbaşında, doğum gününde ve bayramlarda süslenir.
+- **Sabah selamı:** günün ilk açılışında adını, havayı, dersleri ve etkinlikleri söyler.
+- **Ses paketleri:** Klasik, Yumuşak, Mekanik klavye, 8-bit.
 - **Birden fazla ekran:** Ayarlar → Ekran → **İmlecin olduğu ekran** seçeneğiyle ada farenin olduğu ekrana geçer.
 - **Tek tıkla güncelleme:** yeni sürüm çıkınca adada kart belirir; **Güncelle**'ye basınca Ada indirir, doğrular, kurar ve yeniden açılır.
 
@@ -323,10 +327,11 @@ src/timers.js            sayaçlar ve alarmlar   src/apps.js  Başlat menüsü u
 src/weather.js           hava durumu (Open-Meteo)
 src/tokens.js            Claude Code günlük token sayımı
 src/plugins.js           eklentiler (ada-plugin://)   src/plugins-example/  Döviz eklentisi
+src/wallpaper.js         duvar kâğıdının adanın altındaki rengi
 src/picker/              renk seçici penceresi
 src/renderer/            ada arayüzü: core.js + tab-*.js, palette.js (komut çubuğu),
                          viz.js (ses çubukları), devices.js, extras.js (renk, QR),
-                         calc.js, electronics.js, timeparse.js, ayarlar
+                         calc.js, electronics.js, timeparse.js, sounds.js (ses paketleri), ayarlar
 scripts/*.ps1            Windows yardımcıları: UI Automation, medya, ses, seri port,
                          kamera/mikrofon (privacy), Bluetooth pil, pencere
 test/                    birim testleri (node --test)

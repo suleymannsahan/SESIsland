@@ -550,6 +550,25 @@
     Ada.render();
   }
 
+  // what's playing right now, for other pills (Claude at work, a device…): { cover, name, artist } or null
+  function nowPlaying() {
+    const p = player();
+    const t = track();
+    if (t && p.isPlaying) return { cover: t.coverSmall, name: t.name, artist: t.artists };
+    const x = mediaList().find((y) => y.status === 'playing');
+    return x ? { cover: x.thumb, name: x.title || x.app, artist: x.artist || x.app } : null;
+  }
+  // a small cover + sound bars that sits at the end of another pill
+  Ada.musicMini = () => {
+    const n = nowPlaying();
+    if (!n) return '';
+    return `<span class="pmusic" title="${esc(n.name)}${n.artist ? ' · ' + esc(n.artist) : ''}">
+      ${n.cover ? `<img class="pm-cover" src="${esc(n.cover)}" alt="" data-morph="cover">` : `<span class="pm-cover app-cover" data-morph="cover">${APP_ICON}</span>`}
+      <span class="pm-name">${esc(n.name)}</span>
+      <span class="eq on" data-viz aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    </span>`;
+  };
+
   // ------------------------------------------------------------ register
   Ada.tab({
     id: 'music',
@@ -560,15 +579,9 @@
     status() { return Ada.musicPlaying() ? 'music' : 'idle'; },
     wantsFocus() { return Ada.musicPlaying(); },
     pill() {
-      const p = player();
-      const t = track();
-      let cover, name, artist;
-      if (t && p.isPlaying) { cover = t.coverSmall; name = t.name; artist = t.artists; }
-      else {
-        const x = mediaList().find((y) => y.status === 'playing');
-        if (!x) return null;
-        cover = x.thumb; name = x.title || x.app; artist = x.artist || x.app;
-      }
+      const n = nowPlaying();
+      if (!n) return null;
+      const { cover, name, artist } = n;
       return {
         status: 'music',
         html: `<div class="pill music-pill">

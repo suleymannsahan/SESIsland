@@ -154,7 +154,7 @@
       return `<div class="today"><h3>Sayaçlar ve alarmlar</h3><p class="hint-l">Kurduğun sayaçlar ve alarmlar burada listelenir. Ada kapalıyken kurulu alarmlar, açılınca çalar.</p></div>`;
     }
     return `<div class="today"><h3>Sayaçlar ve alarmlar</h3><div class="tms">${list.map((t) => `
-      <div class="tm ${t.ringing ? 'ringing' : ''} ${t.paused != null ? 'paused' : ''}">
+      <div class="tmr ${t.ringing ? 'ringing' : ''} ${t.paused != null ? 'paused' : ''}">
         <span class="tm-ic">${t.kind === 'alarm' ? ALARM : I.timer}</span>
         <span class="tm-name">${esc(tName(t))}<small>${t.kind === 'alarm' ? new Date(t.end).toLocaleString('tr-TR', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : AdaTime.human(t.dur)}</small></span>
         <span class="tm-left" data-live="tm" data-id="${esc(t.id)}">${t.ringing ? 'çalıyor' : AdaTime.clock(tLeft(t))}</span>
@@ -259,7 +259,7 @@
       const rem = remaining();
       const frac = p.phase === 'idle' ? 0 : 1 - rem / (p.total || 1);
       root.querySelectorAll('[data-live="ring"]').forEach((el) => setRing(el, frac, force));
-      root.querySelectorAll('[data-live="ptime"]').forEach((el) => { el.textContent = mmss(rem); });
+      root.querySelectorAll('[data-live="ptime"]').forEach((el) => { Ada.setNum(el, mmss(rem)); });
     }
     const w = sw();
     if (w) {
@@ -278,11 +278,11 @@
     const list = tlist();
     if (list.length) {
       const byId = Object.fromEntries(list.map((t) => [t.id, t]));
-      root.querySelectorAll('[data-live="tm"]').forEach((el) => { const t = byId[el.dataset.id]; if (t && !t.ringing) el.textContent = AdaTime.clock(tLeft(t)); });
+      root.querySelectorAll('[data-live="tm"]').forEach((el) => { const t = byId[el.dataset.id]; if (t && !t.ringing) Ada.setNum(el, AdaTime.clock(tLeft(t))); });
       root.querySelectorAll('[data-live="tmbar"]').forEach((el) => { const t = byId[el.dataset.id]; if (t) el.style.width = `${Math.max(0, Math.min(100, 100 * (1 - tLeft(t) / (t.dur || 1))))}%`; });
       const n = nextTimer();
       if (n) {
-        root.querySelectorAll('[data-live="tmtime"], [data-live="tmpill"]').forEach((el) => { el.textContent = AdaTime.clock(tLeft(n)); });
+        root.querySelectorAll('[data-live="tmtime"], [data-live="tmpill"]').forEach((el) => { Ada.setNum(el, AdaTime.clock(tLeft(n))); });
         root.querySelectorAll('[data-live="tmring"]').forEach((el) => setRing(el, Math.min(1, 1 - tLeft(n) / (n.dur || 1)), force));
       }
     }
@@ -321,6 +321,7 @@
         return {
           status: p.phase === 'focus' ? 'focus' : 'break',
           html: `<div class="pill pomo-pill">
+            ${p.phase === 'focus' && !p.paused && S.config.fenerMoods !== false ? Ada.lighthouse('focus', { ...Ada.scene(), wx: '' }) : ''}
             ${ringHtml(22, 14)}
             <span class="proj">${PHASE[p.phase]}</span>
             <span class="act" data-live="ptime" data-morph="ptime" data-morph-text></span>

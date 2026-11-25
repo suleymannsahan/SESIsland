@@ -194,8 +194,12 @@ Drag files onto the island and Ada keeps them on the shelf. Later, drag them fro
 - **Camera / microphone dot:** a green dot while an app uses the camera, orange for the microphone (hover to see which app).
 - **Devices:** when Bluetooth headphones, a mouse, keyboard, game controller, phone or a USB drive connects, the collapsed island shows its name and, if it has one, its battery. When a device's or the laptop's battery drops below the level you choose (Settings → Appearance), you get a warning.
 - **Event animations:** a light ring and glow when a job is done, confetti when a Pomodoro ends, an amber pulse while a permission is waiting.
-- **Theme:** midnight blue or pure black island, 7 accent colours or Windows' own accent, Compact / Normal / Large size.
-- **Lighthouse:** stars and a moon at night, the sun rises in the morning, it sweats the day before an exam and puffs "z"s while asleep; rain, snow and storms show on it too.
+- **Theme:** midnight blue, pure black, light, or following Windows' light/dark mode; 7 accent colours or Windows' own accent, Compact / Normal / Large size. The island takes on a little of the wallpaper's colour.
+- **Lively motion:** the island stretches like a drop as it opens, leans towards the cursor, numbers roll as they change and tabs slide. While Claude works, a light runs round its edge.
+- **Claude and music together:** while Claude works, the song that's playing shows on the right of the collapsed island with its small cover.
+- **Lighthouse:** stars and a moon at night, the sun rises in the morning, it sweats the day before an exam and puffs "z"s while asleep; rain, snow and storms show on it too. It yawns after a long stretch of work, focuses during a Pomodoro and turns its light to you when asking for permission. Snow on the roof in winter, a flower in spring, a falling leaf in autumn; dressed up for New Year, your birthday and national days.
+- **Morning hello:** the first time you sit down each day it greets you with the weather, your classes and events.
+- **Sound packs:** Classic, Soft, Mechanical keyboard, 8-bit.
 - **Several monitors:** Settings → Screen → **the screen with the cursor** makes the island follow the mouse.
 - **One-click updates:** when a new version is out a card appears; **Update** downloads it, checks it, installs it and restarts Ada.
 
@@ -323,10 +327,11 @@ src/timers.js            timers and alarms      src/apps.js  Start menu apps
 src/weather.js           weather (Open-Meteo)
 src/tokens.js            Claude Code daily token count
 src/plugins.js           plugins (ada-plugin://)   src/plugins-example/  exchange-rate plugin
+src/wallpaper.js         the wallpaper colour under the island
 src/picker/              colour picker window
 src/renderer/            island UI: core.js + tab-*.js, palette.js (command bar),
                          viz.js (audio bars), devices.js, extras.js (colour, QR),
-                         calc.js, electronics.js, timeparse.js, settings
+                         calc.js, electronics.js, timeparse.js, sounds.js (sound packs), settings
 scripts/*.ps1            Windows helpers: UI Automation, media, volume, serial port,
                          camera/microphone (privacy), Bluetooth battery, window
 test/                    unit tests (node --test)

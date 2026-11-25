@@ -6,6 +6,30 @@ Her sürüm etiketinde GitHub Actions bu dosyadaki ilgili bölümü sürüm notl
 
 ## [Yayınlanmamış]
 
+## [0.7.5] - 2026-11-25
+
+### Eklendi
+- **Claude ve müzik aynı anda:** Claude çalışırken bir şarkı da çalıyorsa toplanmış adanın sağında küçük kapak, şarkının adı ve ses çubukları görünür.
+- **Sıvı açılış:** ada büyürken ve küçülürken bir damla gibi hafifçe esneyip yerine oturur.
+- **Fareye tepki:** imleç yaklaşınca ada biraz öne eğilir ve kenarı parlar; üstüne gelince açılmadan önce bir tık daha büyür.
+- **Basılınca çökme:** düğmeler, sekmeler ve kartlar basılınca içeri göçüp yaylanarak geri gelir.
+- **Kayan rakamlar:** Pomodoro, sayaç ve sıcaklık değişirken rakamlar aşağıdan kayarak yerine gelir.
+- **Kenar ışığı:** Claude çalışırken adanın kenarında dönen ince bir ışık; iş bitince bir an yeşile döner.
+- **Duvar kâğıdının tonu:** ada, ekranın üstündeki duvar kâğıdının renginden biraz alır; açık bir duvar kâğıdında gölgesi derinleşir.
+- **Açık tema** ve Windows'un açık/koyu moduna göre değişen **Windows'a göre** tema.
+- **Sekme geçişi:** sekmeler arasında içerik kayarak değişir, seçili sekmenin arkasındaki vurgu da yeni sekmeye kayar.
+- **Fenerin tepkileri:** uzun süre (50 dk) Claude ya da Pomodoro ile çalışınca ve gece geç saatte esner; Pomodoro'da odaklanmış dar bir ışıkla bakar; izin isterken ışığını sana çevirir; iş bitince zıplar.
+- **Mevsimler ve özel günler:** kışın fenerin çatısında kar, baharda çiçek, sonbaharda düşen yaprak; yılbaşında ve doğum gününde parti şapkası ve konfeti; 23 Nisan, 19 Mayıs, 30 Ağustos ve 29 Ekim'de bayrak.
+- **Sabah selamı:** günün ilk açılışında "Günaydın Emre · 11° · bugün 2 ders · 1 etkinlik".
+- **Ses paketleri:** Klasik, Yumuşak, Mekanik klavye ve 8-bit; Ayarlar → Fener ve sesler'de **Dinle** ile denenir.
+- Ayarlar'da yeni **Fener ve sesler** bölümü: ad, doğum günü, ses paketi.
+
+### Değişti
+- Simgeler aynı çizgi kalınlığında ve daha yuvarlak köşelerle yeniden çizildi.
+
+### Düzeltildi
+- Müzik sekmesinde süre ve ses yüzdesinin arkasında görünen gri kutu (sayaç satırlarıyla aynı sınıf adını kullanıyordu).
+
 ## [0.7.4] - 2026-11-25
 
 ### Kaldırıldı

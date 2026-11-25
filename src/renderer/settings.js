@@ -158,7 +158,7 @@
 
   // ------------------------------------------------------------ simple options
   const set = (patch) => ada.setSettings(patch);
-  ['sound', 'notifications', 'desktopWatcher', 'loginAtStart', 'hideFullscreen', 'sleepy', 'glass', 'albumColor', 'shortcuts', 'clipboard', 'translateLyrics', 'visualizer', 'privacyDots', 'deviceCards', 'media', 'weatherRest', 'autoUpdate'].forEach((k) => {
+  ['sound', 'notifications', 'desktopWatcher', 'loginAtStart', 'hideFullscreen', 'sleepy', 'glass', 'albumColor', 'shortcuts', 'clipboard', 'translateLyrics', 'visualizer', 'privacyDots', 'deviceCards', 'media', 'weatherRest', 'autoUpdate', 'motion', 'edgeGlow', 'wallTint', 'fenerMoods', 'seasons', 'greeting'].forEach((k) => {
     $('opt-' + k).addEventListener('change', async (e) => {
       await set({ [k]: e.target.checked });
       if (k === 'shortcuts') refreshShortcuts();
@@ -179,6 +179,24 @@
   }));
   document.querySelectorAll('input[name="skin"]').forEach((r) => r.addEventListener('change', (e) => set({ skin: e.target.value })));
   document.querySelectorAll('input[name="accent"]').forEach((r) => r.addEventListener('change', (e) => set({ accent: e.target.value })));
+  document.querySelectorAll('input[name="soundPack"]').forEach((r) => r.addEventListener('change', (e) => {
+    set({ soundPack: e.target.value });
+    if (window.AdaSound) window.AdaSound.play('done', e.target.value);
+  }));
+  // try the chosen pack: "done", then a moment later "ask"
+  $('sound-try').addEventListener('click', () => {
+    const pack = (document.querySelector('input[name="soundPack"]:checked') || {}).value || 'klasik';
+    window.AdaSound.play('done', pack);
+    setTimeout(() => window.AdaSound.play('ask', pack), 900);
+    setTimeout(() => window.AdaSound.play('pomo', pack), 1800);
+  });
+  $('opt-userName').addEventListener('change', (e) => set({ userName: e.target.value.trim() }));
+  $('opt-birthday').addEventListener('change', async (e) => {
+    const v = e.target.value.trim();
+    if (v && !/^\d{1,2}[./-]\d{1,2}$/.test(v)) { e.target.setCustomValidity('GG.AA biçiminde yaz, örneğin 14.03'); e.target.reportValidity(); return; }
+    e.target.setCustomValidity('');
+    await set({ birthday: v });
+  });
   $('opt-classReminder').addEventListener('change', (e) => set({ classReminder: Number(e.target.value) }));
   $('opt-calendarReminder').addEventListener('change', (e) => set({ calendarReminder: Number(e.target.value) }));
   $('opt-quickReply').addEventListener('change', (e) => set({ quickReply: Number(e.target.value) }));
@@ -305,9 +323,12 @@
     schedule = JSON.parse(JSON.stringify(s.schedule || { classes: [], exams: [] }));
     renderClasses();
     renderExams();
-    ['sound', 'notifications', 'desktopWatcher', 'hideFullscreen', 'sleepy', 'glass', 'albumColor', 'shortcuts', 'clipboard', 'translateLyrics', 'visualizer', 'privacyDots', 'deviceCards', 'media', 'weatherRest', 'autoUpdate'].forEach((k) => { $('opt-' + k).checked = c[k] !== false && !!(c[k] ?? true); });
+    ['sound', 'notifications', 'desktopWatcher', 'hideFullscreen', 'sleepy', 'glass', 'albumColor', 'shortcuts', 'clipboard', 'translateLyrics', 'visualizer', 'privacyDots', 'deviceCards', 'media', 'weatherRest', 'autoUpdate', 'motion', 'edgeGlow', 'wallTint', 'fenerMoods', 'seasons', 'greeting'].forEach((k) => { $('opt-' + k).checked = c[k] !== false && !!(c[k] ?? true); });
     document.querySelectorAll('input[name="skin"]').forEach((r) => { r.checked = r.value === (c.skin || 'slate'); });
     document.querySelectorAll('input[name="accent"]').forEach((r) => { r.checked = r.value === (c.accent || 'deniz'); });
+    document.querySelectorAll('input[name="soundPack"]').forEach((r) => { r.checked = r.value === (c.soundPack || 'klasik'); });
+    $('opt-userName').value = c.userName || '';
+    $('opt-birthday').value = c.birthday || '';
     if (c.systemAccent) document.querySelector('.sw-windows').style.background = '#' + c.systemAccent.slice(0, 6);
     syncSize(c.scale || 1);
     $('opt-loginAtStart').checked = !!s.loginAtStart;

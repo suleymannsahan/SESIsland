@@ -3,7 +3,7 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 const LISTEN = [
   'island:state', 'island:event', 'island:toast', 'island:expand', 'island:config', 'island:palette',
-  'music:state', 'music:lyrics', 'mod:state', 'island:pointer',
+  'music:state', 'music:lyrics', 'mod:state', 'island:pointer', 'island:near',
   'settings:spotify', 'settings:login', 'settings:section',
 ];
 

@@ -34,6 +34,8 @@ const { Weather } = require('./weather');
 const { TokenStats } = require('./tokens');
 const { Plugins } = require('./plugins');
 const { Devices } = require('./devices');
+const { Wallpaper } = require('./wallpaper');
+const os = require('os');
 
 // plugin files are served to the island from their own folder only (see plugins.js)
 protocol.registerSchemesAsPrivileged([{ scheme: 'ada-plugin', privileges: { standard: true, secure: true } }]);
@@ -116,6 +118,7 @@ let tokens = null;
 let plugins = null;
 let devices = null;
 let lastBtConnect = 0;
+let wallpaper = null;
 let usageHist = null;
 let privacyState = { cam: [], mic: [] };
 let launching = null;     // { name, arg, startedAt } while Spotify is being opened
@@ -806,14 +809,44 @@ function setupModules() {
   winctl.on('fullscreen', (fs_) => { fullscreenHidden = fs_; diag('fullscreen', fs_); applyVisibility(); });
   if (config.get().hideFullscreen) winctl.startWatch(adaPoint());
 
-  // once a minute: class reminders and the daily summary
+  wallpaper = new Wallpaper(nativeImage, (c) => mod('wall', c));
+  if (config.get().wallTint !== false) wallpaper.start();
+  screen.on('display-metrics-changed', () => { if (wallpaper && config.get().wallTint !== false) wallpaper.refresh(true); });
+
+  // once a minute: class reminders, the daily summary and the morning hello
   const minute = () => {
     checkClassReminder();
     checkCalendarReminder();
     checkDailySummary();
+    checkGreeting();
   };
   minuteTimer = setInterval(minute, 60 * 1000);
   setTimeout(minute, 5000);
+}
+
+// The first time you are at the computer each day (from 5 in the morning): a short hello on the island.
+function dayKey(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function firstName() {
+  const n = String(config.get().userName || '').trim();
+  if (n) return n.split(/\s+/)[0];
+  try {
+    const u = os.userInfo().username.split(/[\s._-]+/)[0];
+    return /^[A-Za-zÇĞİÖŞÜçğıöşü]{2,}$/.test(u) && !/^(user|admin|administrator|root|kullanici|kullanıcı|pc|owner|yonetici|yönetici)$/i.test(u) ? u[0].toLocaleUpperCase('tr') + u.slice(1) : '';
+  } catch { return ''; }
+}
+function checkGreeting() {
+  if (config.get().greeting === false || !win || win.isDestroyed()) return;
+  const now = new Date();
+  if (now.getHours() < 5) return;
+  const today = dayKey(now);
+  if (config.get().greetedDay === today) return;
+  let idle = 0;
+  try { idle = powerMonitor.getSystemIdleTime(); } catch { /* not on this OS */ }
+  if (idle > 60) return;            // nobody at the computer yet
+  config.set({ greetedDay: today });
+  send('island:event', { type: 'greet', name: firstName(), hour: now.getHours() });
 }
 
 function nowHM(d = new Date()) {
@@ -1065,6 +1098,7 @@ async function writeDiagnostics() {
   shell.showItemInFolder(out);
 }
 
+let pointerNear = false;
 function startPointerWatch() {
   clearInterval(pointerTimer);
   pointerTimer = setInterval(() => {
@@ -1077,6 +1111,11 @@ function startPointerWatch() {
     const inside = p.x >= b.x + islandRect.x - m && p.x <= b.x + islandRect.x + islandRect.w + m
       && p.y >= b.y + islandRect.y - m && p.y <= b.y + islandRect.y + islandRect.h + m;
     setPointer(inside);
+    // close but not over it yet: the island leans towards the cursor a little
+    const n = 44;
+    const near = !inside && p.x >= b.x + islandRect.x - n && p.x <= b.x + islandRect.x + islandRect.w + n
+      && p.y >= b.y + islandRect.y - n && p.y <= b.y + islandRect.y + islandRect.h + n;
+    if (near !== pointerNear) { pointerNear = near; send('island:near', near); }
   }, 40);
 }
 
@@ -1157,6 +1196,7 @@ ipcMain.handle('island:init', () => ({
     tokens: tokens ? tokens.state : null,
     usageHistory: usageHist ? usageHist.get() : null,
     devices: devices ? devices.state : null,
+    wall: wallpaper && config.get().wallTint !== false ? wallpaper.state : null,
     plugins: plugins ? plugins.list.filter((p) => (config.get().pluginsEnabled || {})[p.id]) : [],
   },
 }));
@@ -1462,7 +1502,9 @@ const SETTABLE = {
   sound: 'bool', notifications: 'bool', desktopWatcher: 'bool', hideFullscreen: 'bool', sleepy: 'bool',
   albumColor: 'bool', glass: 'bool', visualizer: 'bool', media: 'bool', shortcuts: 'bool', clipboard: 'bool', translateLyrics: 'bool',
   weatherRest: 'bool', autoUpdate: 'bool', lowBattery: 'int', privacyDots: 'bool', deviceCards: 'bool', quickReply: 'int', calendarUrl: 'url', calendarReminder: 'int',
-  skin: ['slate', 'black'], accent: ['deniz', 'gok', 'lila', 'mercan', 'fener', 'yosun', 'pembe', 'windows'],
+  wallTint: 'bool', motion: 'bool', edgeGlow: 'bool', fenerMoods: 'bool', seasons: 'bool', greeting: 'bool', userName: 'name', birthday: 'md',
+  soundPack: ['klasik', 'yumusak', 'mekanik', 'bit'],
+  skin: ['slate', 'black', 'light', 'auto'], accent: ['deniz', 'gok', 'lila', 'mercan', 'fener', 'yosun', 'pembe', 'windows'],
   position: ['center', 'left', 'right'], display: 'display', scale: 'num', summaryTime: 'hm', classReminder: 'int', updateRepo: 'repo',
 };
 
@@ -1478,6 +1520,8 @@ function applySettings(patch) {
     else if (t === 'hm') clean[k] = /^\d{1,2}:\d{2}$/.test(v) || v === '' ? v : config.get()[k];
     else if (t === 'repo') clean[k] = /^[\w.-]+\/[\w.-]+$/.test(v) || v === '' ? v : config.get()[k];
     else if (t === 'url') clean[k] = /^(https|webcal):\/\/\S+$/i.test(String(v).trim()) || v === '' ? String(v).trim() : config.get()[k];
+    else if (t === 'name') clean[k] = String(v || '').replace(/[<>"]/g, '').trim().slice(0, 30);
+    else if (t === 'md') clean[k] = /^\d{1,2}[./-]\d{1,2}$/.test(String(v).trim()) || v === '' ? String(v).trim() : config.get()[k];
     else if (Array.isArray(t) && t.includes(v)) clean[k] = v;
   }
   config.set(clean);
@@ -1487,6 +1531,7 @@ function applySettings(patch) {
   if ('clipboard' in clean) clip.setEnabled(clean.clipboard);
   if ('calendarUrl' in clean) { calendar.setUrl(clean.calendarUrl); calendar.start(); }
   if ('deviceCards' in clean) clean.deviceCards ? devices.start() : devices.stop();
+  if ('wallTint' in clean) { if (clean.wallTint) wallpaper.start(); else { clearInterval(wallpaper.timer); wallpaper.state = null; mod('wall', null); } }
   if ('lowBattery' in clean) { clean.lowBattery = Math.min(50, clean.lowBattery); config.set({ lowBattery: clean.lowBattery }); }
   if ('quickReply' in clean) { clean.quickReply = Math.min(60, clean.quickReply); config.set({ quickReply: clean.quickReply }); server.replyWindow = clean.quickReply; }
   if ('privacyDots' in clean) {

@@ -61,19 +61,19 @@
     plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
     vol: '<svg viewBox="0 0 24 24"><path class="f" d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>',
     gear: '<svg viewBox="0 0 24 24"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4z"/><path d="M19.4 13.5l1.6 1.2-1.8 3.1-1.9-.7a7 7 0 0 1-1.7 1l-.3 2h-3.6l-.3-2a7 7 0 0 1-1.7-1l-1.9.7-1.8-3.1 1.6-1.2a7 7 0 0 1 0-2l-1.6-1.2 1.8-3.1 1.9.7a7 7 0 0 1 1.7-1l.3-2h3.6l.3 2a7 7 0 0 1 1.7 1l1.9-.7 1.8 3.1-1.6 1.2a7 7 0 0 1 0 2z"/></svg>',
-    terminal: '<svg viewBox="0 0 24 24"><path d="M4 5.5h16v13H4zM7.5 10l2.5 2-2.5 2M12 14.5h4"/></svg>',
+    terminal: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="M7.5 10l2.5 2-2.5 2M12.5 14.5h4"/></svg>',
     note: '<svg viewBox="0 0 24 24"><path d="M9 17.5V6l10-2v11.5"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/></svg>',
-    timer: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M9.5 3h5"/></svg>',
-    book: '<svg viewBox="0 0 24 24"><path d="M4.5 5.5A2 2 0 0 1 6.5 3.5H19v15H6.5a2 2 0 0 0-2 2zM4.5 20.5v-15M8.5 7.5h6.5"/></svg>',
-    tools: '<svg viewBox="0 0 24 24"><path d="M5 3.5h14v17H5zM8 7h8M8 11h2M12 11h2M16 11h.01M8 14.5h2M12 14.5h2M16 14.5v3M8 17.5h2M12 17.5h2"/></svg>',
-    chip: '<svg viewBox="0 0 24 24"><path d="M7 7h10v10H7zM9.5 3v4M14.5 3v4M9.5 17v4M14.5 17v4M3 9.5h4M3 14.5h4M17 9.5h4M17 14.5h4"/></svg>',
+    timer: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M9.5 2.8h5M18.5 6.5l1.2-1.2"/></svg>',
+    book: '<svg viewBox="0 0 24 24"><path d="M5 18.5V6a2.5 2.5 0 0 1 2.5-2.5H19v13H7.5A2.5 2.5 0 0 0 5 19a2.5 2.5 0 0 0 2.5 2.5H19M9 7.5h6"/></svg>',
+    tools: '<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="3"/><rect x="8" y="6" width="8" height="3.5" rx="1"/><path d="M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 17h.01M12 17h.01M15.5 17h.01"/></svg>',
+    chip: '<svg viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2.5"/><path d="M9.5 3v3.5M14.5 3v3.5M9.5 17.5V21M14.5 17.5V21M3 9.5h3.5M3 14.5h3.5M17.5 9.5H21M17.5 14.5H21"/></svg>',
     gauge: '<svg viewBox="0 0 24 24"><path d="M4.5 16.5a8 8 0 1 1 15 0M12 13l3.5-4"/><circle cx="12" cy="13.5" r="1.3"/></svg>',
-    computer: '<svg viewBox="0 0 24 24"><path d="M3.5 5h17v11h-17zM8.5 20h7M12 16v4"/></svg>',
-    phone: '<svg viewBox="0 0 24 24"><path d="M8 2.5h8a1 1 0 0 1 1 1v17a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1v-17a1 1 0 0 1 1-1zM11 18.5h2"/></svg>',
-    speaker: '<svg viewBox="0 0 24 24"><path d="M6 2.5h12v19H6z"/><circle cx="12" cy="14.5" r="3.2"/><path d="M12 7h.01"/></svg>',
-    copy: '<svg viewBox="0 0 24 24"><path d="M8.5 8.5h11v11h-11zM15.5 8.5v-4h-11v11h4"/></svg>',
+    computer: '<svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="12" rx="2.5"/><path d="M8.5 20.5h7M12 16.5v4"/></svg>',
+    phone: '<svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.8"/><path d="M11 18.5h2"/></svg>',
+    speaker: '<svg viewBox="0 0 24 24"><rect x="5.5" y="2.5" width="13" height="19" rx="3"/><circle cx="12" cy="14.5" r="3.2"/><path d="M12 7h.01"/></svg>',
+    copy: '<svg viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="12" height="12" rx="2.5"/><path d="M15.5 8.5V6a2.5 2.5 0 0 0-2.5-2.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2.5"/></svg>',
     x: '<svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>',
-    jump: '<svg viewBox="0 0 24 24"><path d="M13.5 5.5h5v5M18.5 5.5l-7.5 7.5M10 6.5H5.5v12h12V14"/></svg>',
+    jump: '<svg viewBox="0 0 24 24"><path d="M13.5 4.5h6v6M19.5 4.5l-8 8M10 5.5H7.5a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V14"/></svg>',
   };
 
   // ------------------------------------------------------------ sessions
@@ -131,7 +131,7 @@
       mode: 'card', status: 'waiting', key: 'perm:' + p.id,
       html: `<div class="card">
         <div class="card-head">
-          <span class="glyph" data-s="waiting" data-morph="glyph"></span>
+          ${S.config.fenerMoods === false ? '<span class="glyph" data-s="waiting" data-morph="glyph"></span>' : lighthouse('waiting', { ...scene(), wx: '' })}
           <span class="proj" data-morph="proj" data-morph-text>${esc(p.project)}</span>
           <span class="what">izin istiyor</span>
           ${more > 0 ? `<span class="queue">${more} istek daha</span>` : ''}
@@ -241,26 +241,42 @@
   }
 
   // ------------------------------------------------------------ the lighthouse (Ada's mascot)
-  // mood: idle | working | waiting | done | sleep
+  // mood: idle | working | waiting | done | sleep | focus
+  // extra: tod (night/dawn/day), exam, wx (weather kind), and on its own: the season and special days,
+  // and whether you have been at it for a long time (the lighthouse gets tired and yawns)
   function lighthouse(mood, extra = {}) {
-    return `<span class="fener" data-mood="${mood}" data-tod="${extra.tod || 'day'}" data-exam="${extra.exam ? 1 : 0}" data-wx="${extra.wx || ''}" data-act="fener" data-morph="glyph" aria-hidden="true">
+    const fest = S.config.seasons === false ? {} : festive();
+    return `<span class="fener" data-mood="${mood}" data-tod="${extra.tod || 'day'}" data-exam="${extra.exam ? 1 : 0}" data-wx="${extra.wx || ''}" data-season="${fest.season || ''}" data-fest="${fest.day || ''}" data-tired="${mood !== 'sleep' && tired() ? 1 : 0}" data-act="fener" data-morph="glyph" aria-hidden="true">
       <svg viewBox="-8 0 40 24">
         <defs>
           <linearGradient id="beamL" x1="1" x2="0"><stop offset="0" stop-color="var(--lamp)" stop-opacity=".55"/><stop offset="1" stop-color="var(--lamp)" stop-opacity="0"/></linearGradient>
           <linearGradient id="beamR" x1="0" x2="1"><stop offset="0" stop-color="var(--lamp)" stop-opacity=".55"/><stop offset="1" stop-color="var(--lamp)" stop-opacity="0"/></linearGradient>
+          <linearGradient id="beamD" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="var(--lamp)" stop-opacity=".7"/><stop offset="1" stop-color="var(--lamp)" stop-opacity="0"/></linearGradient>
         </defs>
         <g class="stars"><circle cx="-5" cy="3" r=".7"/><circle cx="-1.5" cy="10.5" r=".5"/><circle cx="26" cy="12" r=".55"/><circle cx="20.5" cy="1.4" r=".45"/></g>
         <path class="moon" d="M29.6 1.2a3.3 3.3 0 1 0 2.2 5.6a2.7 2.7 0 1 1 -2.2 -5.6z"/>
         <circle class="sun" cx="19.6" cy="20.2" r="3.4"/>
         <polygon class="beam-l" points="12,6 -8,1.5 -8,10.5" fill="url(#beamL)"/>
         <polygon class="beam-r" points="12,6 32,1.5 32,10.5" fill="url(#beamR)"/>
-        <polygon class="roof" points="8.6,4.2 12,1.6 15.4,4.2"/>
-        <rect class="lamp" x="9.6" y="4.2" width="4.8" height="3.6" rx=".8"/>
-        <rect class="rail" x="8.8" y="7.8" width="6.4" height="1.1" rx=".4"/>
-        <polygon class="tower" points="10,8.9 14,8.9 15.3,21 8.7,21"/>
-        <polygon class="stripe" points="9.6,12.4 14.4,12.4 14.7,14.6 9.3,14.6"/>
-        <polygon class="stripe" points="9.1,17 14.9,17 15.1,19 8.9,19"/>
+        <polygon class="beam-f" points="12,6 32,4.6 32,7.4" fill="url(#beamR)"/>
+        <polygon class="beam-d" points="12,6 4,24 20,24" fill="url(#beamD)"/>
+        <g class="fb">
+          <polygon class="roof" points="8.6,4.2 12,1.6 15.4,4.2"/>
+          <path class="snowcap" d="M8.3 4.4q1.2-1.3 2.2-2.1q.7.5 1.5.1q.8.5 1.5-.1q1 .8 2.2 2.1q-.9.5-1.7-.1q-.9.6-2 0q-1.1.6-2 0q-.8.6-1.7.1z"/>
+          <g class="hat"><polygon points="10,2 12,-2.4 14,2"/><circle cx="12" cy="-2.5" r=".8"/><path d="M10.9 .4h2.2M11.4 -1.1h1.2"/></g>
+          <g class="flag"><path class="pole" d="M12 1.8V-2.6"/><rect x="12" y="-2.6" width="4.6" height="3" rx=".3"/><circle cx="13.7" cy="-1.1" r=".9"/><circle cx="14" cy="-1.1" r=".72" class="cut"/><circle cx="15.1" cy="-1.1" r=".38" class="st"/></g>
+          <rect class="lamp" x="9.6" y="4.2" width="4.8" height="3.6" rx=".8"/>
+          <rect class="lid" x="9.6" y="4.2" width="4.8" height="0" rx=".5"/>
+          <rect class="rail" x="8.8" y="7.8" width="6.4" height="1.1" rx=".4"/>
+          <polygon class="tower" points="10,8.9 14,8.9 15.3,21 8.7,21"/>
+          <polygon class="stripe" points="9.6,12.4 14.4,12.4 14.7,14.6 9.3,14.6"/>
+          <polygon class="stripe" points="9.1,17 14.9,17 15.1,19 8.9,19"/>
+          <ellipse class="yawn" cx="12" cy="10.9" rx=".9" ry="0"/>
+        </g>
         <rect class="base" x="7.2" y="21" width="9.6" height="1.6" rx=".8"/>
+        <g class="flower"><path class="stem" d="M5 22v-3"/><circle cx="5" cy="18.4" r="1.25"/><circle cx="5" cy="18.4" r=".5" class="mid"/></g>
+        <path class="leaf" d="M0 0q1.6-1.6 3.2 0q-1.6 1.6-3.2 0z"/>
+        <g class="confetti"><rect x="2" y="2" width="1" height="1.6"/><rect x="21" y="3" width="1.6" height="1"/><rect x="0" y="12" width="1" height="1.6"/><rect x="24" y="14" width="1.6" height="1"/></g>
         <circle class="spark" cx="18.5" cy="3" r="1.1"/>
         <path class="drop" d="M17.2 5.6q1.3 1.7 0 2.6q-1.3 -.9 0 -2.6z"/>
         <g class="wx-rain"><path d="M-4 -2l-1 3"/><path d="M1 -4l-1 3"/><path d="M21 -1l-1 3"/><path d="M25 2l-1 3"/><path d="M-1 6l-1 3"/><path d="M23 8l-1 3"/></g>
@@ -272,6 +288,43 @@
       </svg>
     </span>`;
   }
+
+  // seasons and special days: snow on the roof in winter, a flower in spring, a falling leaf in
+  // autumn; a party hat at New Year and on your birthday; a flag on national days
+  function festive(d = new Date()) {
+    const m = d.getMonth() + 1;
+    const day = d.getDate();
+    const md = `${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const season = m === 12 || m <= 2 ? 'winter' : m <= 5 ? 'spring' : m <= 8 ? 'summer' : 'autumn';
+    let special = '';
+    if ((m === 12 && day >= 30) || (m === 1 && day <= 1)) special = 'newyear';
+    if (['04-23', '05-19', '08-30', '10-29'].includes(md)) special = 'flag';
+    const bd = String(S.config.birthday || '').match(/^(\d{1,2})[./-](\d{1,2})$/);
+    if (bd && Number(bd[1]) === day && Number(bd[2]) === m) special = 'birthday';
+    return { season, day: special };
+  }
+  Ada.festive = festive;
+
+  // tired: busy (Claude at work, a Pomodoro, the stopwatch) for 50 minutes without a real break,
+  // or still up past one at night
+  let busySince = 0;
+  let calmSince = Date.now();
+  function busyNow() {
+    const working = S.claude.sessions.some((x) => x.status === 'working');
+    const f = S.mods.pomodoro;
+    return working || !!(f && f.phase === 'focus' && !f.paused);
+  }
+  setInterval(() => {
+    if (busyNow()) { if (!busySince) busySince = Date.now(); calmSince = 0; }
+    else { if (!calmSince) calmSince = Date.now(); if (Date.now() - calmSince > 10 * 60 * 1000) busySince = 0; }
+  }, 15000);
+  function tired() {
+    if (S.config.fenerMoods === false) return false;
+    const h = new Date().getHours();
+    if (h >= 1 && h < 5) return true;
+    return !!busySince && Date.now() - busySince > 50 * 60 * 1000;
+  }
+  Ada.tired = tired;
   Ada.lighthouse = lighthouse;
   const moodOf = (status) => ({ working: 'working', waiting: 'waiting', question: 'waiting', done: 'done' }[status] || 'idle');
 
@@ -306,7 +359,7 @@
   function wxHtml() {
     const w = S.mods.weather;
     if (!w || !w.now || S.config.weatherRest === false) return '';
-    return `<span class="wx" title="${esc(`${w.place ? w.place.name + ' · ' : ''}${w.now.text} · hissedilen ${w.now.feels}°`)}"><i class="wx-ic sm">${Ada.wxIcon(w.now.kind, w.now.isDay)}</i>${w.now.temp}°</span>`;
+    return `<span class="wx" title="${esc(`${w.place ? w.place.name + ' · ' : ''}${w.now.text} · hissedilen ${w.now.feels}°`)}"><i class="wx-ic sm">${Ada.wxIcon(w.now.kind, w.now.isDay)}</i><span data-num="wxtemp">${w.now.temp}°</span></span>`;
   }
   Ada.scene = scene;
 
@@ -330,16 +383,19 @@
 
   function viewPill(s) {
     const others = S.claude.sessions.filter((x) => live(x) && x !== s).sort((a, b) => (rank[a.status] - rank[b.status]) || (b.updatedAt - a.updatedAt));
-    const shown = others.slice(0, 2);
+    // a song playing at the same time keeps its own small corner of the pill
+    const song = Ada.musicMini ? Ada.musicMini() : '';
+    const shown = others.slice(0, song ? 1 : 2);
     const more = others.length - shown.length;
     return {
       mode: 'pill', status: s.status,
-      html: `<div class="pill">
-        ${lighthouse(moodOf(s.status))}
+      html: `<div class="pill ${song ? 'with-music' : ''}">
+        ${lighthouse(moodOf(s.status), { ...scene(), wx: '' })}
         <span class="proj" data-morph="proj" data-morph-text>${esc(s.project)}</span>
-        <span class="act ${shown.length ? 'short' : ''}">${esc(s.activity)}</span>
+        <span class="act ${shown.length || song ? 'short' : ''}">${esc(s.activity)}</span>
         ${shown.map((x) => `<span class="osess" title="${esc(x.project)} · ${esc(x.activity)}"><span class="glyph" data-s="${esc(x.status)}"></span>${esc(x.project)}</span>`).join('')}
         ${more > 0 ? `<span class="count" title="Diğer oturumlar">+${more}</span>` : ''}
+        ${song}
       </div>`,
     };
   }
@@ -358,7 +414,7 @@
       status: p && live(p) ? p.status : (t.status && t.status()) || 'idle',
       key: 'panel:' + t.id,
       html: `<div class="panel tab-${t.id}">
-        <nav class="rail">${rail}<span class="spacer"></span>
+        <nav class="rail"><i class="rail-hl" aria-hidden="true"></i>${rail}<span class="spacer"></span>
           <button class="tab" data-act="settings" title="Ayarlar" aria-label="Ayarlar">${I.gear}</button>
         </nav>
         <div class="body body-${t.id}">${t.body()}</div>
@@ -425,24 +481,114 @@
       }
       last.regions = regions;
       island.dataset.status = v.status;
-      if (changed) { resize(); const t = currentTab(); if (t && t.after) t.after(inner, false); tick(true); }
+      if (changed) { resize(); freshNumbers(); const t = currentTab(); if (t && t.after) t.after(inner, false); tick(true); }
       return;
     }
     // A focused input is never rebuilt under the user's fingers.
     if (ui.holdOpen && key === last.key && v.mode === last.mode) return;
     const modeChanged = v.mode !== last.mode || key !== last.key;
+    const tabSwitch = last.mode === 'panel' && v.mode === 'panel' && last.key !== key && last.key.startsWith('panel:') && key.startsWith('panel:');
+    const fromHl = tabSwitch ? railOn() : null;
+    const fromIdx = tabs.findIndex((x) => 'panel:' + x.id === last.key);
+    const oldW = island.offsetWidth;
+    const oldH = island.offsetHeight;
     last = { mode: v.mode, key, skeleton, regions };
     const apply = () => {
       inner.innerHTML = v.html;
       island.dataset.status = v.status;
-      island.className = v.mode.split(' ').map((m) => `mode-${m}`).join(' ');
+      const keep = ['peek', 'near', 'halo-done', 'bump'].filter((c) => island.classList.contains(c));
+      island.className = [...v.mode.split(' ').map((m) => `mode-${m}`), ...keep].join(' ');
       resize();
+      placeRailHl(fromHl);
+      freshNumbers();
       const t = currentTab();
       if (t && t.after) t.after(inner, true);
       tick(true);
     };
-    if (modeChanged && inner.innerHTML && !reduceMotion()) morph(apply);
-    else apply();
+    if (tabSwitch && !reduceMotion()) {
+      apply();
+      // the new tab's content slides in from the side of the rail it came from
+      const dir = tabs.findIndex((x) => x.id === ui.tab) > fromIdx ? 1 : -1;
+      const body = inner.querySelector('.body');
+      if (body) body.animate([{ opacity: 0, transform: `translateY(${dir * 14}px)`, filter: 'blur(2px)' }, { opacity: 1, transform: 'none', filter: 'none' }], { duration: 300, easing: EASE });
+    } else if (modeChanged && inner.innerHTML && !reduceMotion()) {
+      morph(apply);
+      liquid(oldW, oldH);
+    } else apply();
+    if (!modeChanged) freshNumbers();
+  }
+
+  // ------------------------------------------------------------ liquid: the island stretches like a drop
+  // Growing, it gets a little taller and thinner first, then settles; shrinking, it squashes.
+  function liquid(oldW, oldH) {
+    if (S.config.motion === false) return;
+    const w = parseFloat(island.style.width) || oldW;
+    const h = parseFloat(island.style.height) || oldH;
+    const dh = h - oldH;
+    const dw = w - oldW;
+    if (Math.abs(dh) < 4 && Math.abs(dw) < 8) return;
+    const k = Math.min(1, (Math.abs(dh) + Math.abs(dw) / 4) / 160);
+    const grow = dh > 0 || (dh === 0 && dw > 0);
+    const a = grow ? [1 - 0.035 * k, 1 + 0.06 * k] : [1 + 0.05 * k, 1 - 0.07 * k];
+    const b = grow ? [1 + 0.012 * k, 1 - 0.02 * k] : [1 - 0.012 * k, 1 + 0.025 * k];
+    island.animate([
+      { transform: 'none' },
+      { transform: `scale(${a[0]}, ${a[1]})`, offset: 0.32 },
+      { transform: `scale(${b[0]}, ${b[1]})`, offset: 0.68 },
+      { transform: 'none' },
+    ], { duration: 560, easing: 'ease-in-out', composite: 'add' });
+  }
+
+  // ------------------------------------------------------------ the sliding highlight behind the chosen tab
+  function railOn() {
+    const on = inner.querySelector('.rail .tab.on');
+    return on ? on.offsetTop : null;
+  }
+  function placeRailHl(from) {
+    const hl = inner.querySelector('.rail-hl');
+    const on = inner.querySelector('.rail .tab.on');
+    if (!hl || !on) return;
+    hl.style.left = on.offsetLeft + 'px';
+    hl.style.width = on.offsetWidth + 'px';
+    hl.style.height = on.offsetHeight + 'px';
+    if (from == null || reduceMotion()) { hl.style.transform = `translateY(${on.offsetTop}px)`; return; }
+    hl.animate([{ transform: `translateY(${from}px) scaleY(1)` }, { transform: `translateY(${(from + on.offsetTop) / 2}px) scaleY(1.25)`, offset: 0.45 }, { transform: `translateY(${on.offsetTop}px)` }], { duration: 380, easing: EASE });
+    hl.style.transform = `translateY(${on.offsetTop}px)`;
+  }
+
+  // ------------------------------------------------------------ numbers that roll
+  // Countdowns and the temperature change digit by digit: the new digit slides up into place.
+  function rollTo(el, text, prev) {
+    if (prev == null || prev === text || reduceMotion() || S.config.motion === false) { el.textContent = text; return; }
+    const p = prev.padStart(text.length, ' ');
+    const off = p.length - text.length;
+    el.replaceChildren(...[...text].map((ch, i) => {
+      const sp = document.createElement('span');
+      const was = p[i + off];
+      sp.className = 'dg' + (was !== ch && /[0-9]/.test(ch) ? ' roll' : '');
+      sp.textContent = ch;
+      return sp;
+    }));
+  }
+  function setNum(el, text) {
+    text = String(text);
+    const prev = el.dataset.rv;
+    if (prev === text) return;
+    el.dataset.rv = text;
+    rollTo(el, text, prev);
+  }
+  Ada.setNum = setNum;
+  // numbers drawn as HTML (data-num="key"): compare with the last value seen under that key
+  const numMem = {};
+  function freshNumbers() {
+    inner.querySelectorAll('[data-num]').forEach((el) => {
+      const k = el.dataset.num;
+      const text = el.dataset.rv || el.textContent;
+      if (el.dataset.rv) return;
+      el.dataset.rv = text;
+      rollTo(el, text, numMem[k]);
+      numMem[k] = text;
+    });
   }
 
   // ------------------------------------------------------------ morph between views
@@ -619,31 +765,55 @@
   }
   Ada.fx = { flash, shine, burst, bump: () => bump() };
   function activity() { ui.lastActivity = Date.now(); }
+  // the edge light turns green for a moment when Claude finishes
+  function halo() {
+    island.classList.add('halo-done');
+    clearTimeout(halo.t);
+    halo.t = setTimeout(() => island.classList.remove('halo-done'), 1900);
+  }
+
+  // ------------------------------------------------------------ the morning hello
+  // "Günaydın Emre · 11° · 2 ders · 1 etkinlik": the first time you sit down each day.
+  function greetText(ev, now = new Date()) {
+    const h = ev.hour != null ? ev.hour : now.getHours();
+    const hi = h < 12 ? 'Günaydın' : h < 18 ? 'İyi günler' : 'İyi akşamlar';
+    const bits = [];
+    const w = S.mods.weather;
+    if (w && w.now) bits.push(`${w.now.temp}°`);
+    const dow = (now.getDay() + 6) % 7;
+    const classes = ((S.mods.schedule && S.mods.schedule.classes) || []).filter((c) => Number(c.day) === dow).length;
+    if (classes) bits.push(`bugün ${classes} ders`);
+    const events = ((S.mods.calendar && S.mods.calendar.events) || []).filter((e) => new Date(e.start).toDateString() === now.toDateString()).length;
+    if (events) bits.push(`${events} etkinlik`);
+    const iso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    if (((S.mods.schedule && S.mods.schedule.exams) || []).some((x) => x.date === iso)) bits.push('sınav günü, başarılar');
+    const f = festive(now);
+    if (f.day === 'birthday') bits.unshift('iyi ki doğdun');
+    if (f.day === 'newyear') bits.unshift('mutlu yıllar');
+    return { hi: ev.name ? `${hi} ${ev.name}` : hi, bits };
+  }
+  Ada.greetText = greetText;
+  function greet(ev) {
+    const g = greetText(ev);
+    const w = S.mods.weather;
+    Ada.notice({
+      key: 'greet', status: 'done', ms: 6500,
+      html: `<div class="pill greet-pill">
+        ${lighthouse('done', { ...scene(), wx: '' })}
+        <span class="proj">${esc(g.hi)}</span>
+        ${g.bits.map((b, i) => `<span class="act">${i === 0 && w && w.now && b === `${w.now.temp}°` ? `<i class="wx-ic sm">${Ada.wxIcon(w.now.kind, w.now.isDay)}</i>` : ''}${esc(b)}</span>`).join('<i class="sep">·</i>')}
+      </div>`,
+    });
+    chime('hello');
+    if (festive().day === 'birthday' || festive().day === 'newyear') burst();
+    else flash('done');
+  }
 
   // ------------------------------------------------------------ sound
-  let actx = null;
   function chime(kind) {
     // an alarm rings even with sounds turned off: ringing is its whole job
     if (!S.config.sound && kind !== 'alarm') return;
-    try {
-      actx = actx || new AudioContext();
-      const seq = kind === 'done' ? [659.25, 987.77] : kind === 'pomo' ? [523.25, 659.25, 783.99] : kind === 'alarm' ? [783.99, 987.77, 783.99, 987.77, 1174.66] : [880, 880];
-      const gap = kind === 'done' ? 0.12 : kind === 'pomo' ? 0.16 : kind === 'alarm' ? 0.15 : 0.18;
-      const t0 = actx.currentTime;
-      seq.forEach((f, i) => {
-        const o = actx.createOscillator();
-        const g = actx.createGain();
-        o.type = 'sine';
-        o.frequency.value = f;
-        const t = t0 + i * gap;
-        g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(0.11, t + 0.015);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
-        o.connect(g).connect(actx.destination);
-        o.start(t);
-        o.stop(t + 0.75);
-      });
-    } catch { /* audio unavailable */ }
+    if (window.AdaSound) window.AdaSound.play(kind, S.config.soundPack || 'klasik');
   }
 
   // accent: one of the palette colours or Windows' own accent colour (lifted so it reads on dark)
@@ -668,11 +838,17 @@
     document.body.dataset.pos = c.position || 'center';
     document.body.classList.toggle('glass', c.glass !== false);
     document.body.classList.toggle('no-album', c.albumColor === false);
-    document.body.dataset.skin = c.skin || 'slate';
+    // "auto": light while Windows uses its light theme, deep blue in dark mode
+    const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.body.dataset.skin = c.skin === 'auto' ? (dark ? 'slate' : 'light') : c.skin || 'slate';
+    document.body.classList.toggle('edge-glow', c.edgeGlow !== false);
+    document.body.classList.toggle('calm', c.motion === false);
     const acc = c.accent === 'windows' ? readable(c.systemAccent) : ACCENTS[c.accent];
     if (acc) document.documentElement.style.setProperty('--deniz', acc);
     else document.documentElement.style.removeProperty('--deniz');
   }
+
+  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyBodyConfig(S.config));
 
   // ------------------------------------------------------------ scroll gestures
   // Over the island (outside lists and text): wheel up/down = computer volume,
@@ -727,6 +903,7 @@
   function openPanel() {
     if (ui.hovered) return;
     ui.hovered = true;
+    island.classList.remove('peek', 'near');
     activity();
     if (!ui.tab) {
       const preferred = tabs.find((t) => t.wantsFocus && t.wantsFocus());
@@ -760,11 +937,20 @@
     render();
   };
 
+  // The cursor coming close: the island leans out a little and its edge lights up.
+  let nearNow = false;
+  ada.on('island:near', (on) => {
+    nearNow = !!on && S.config.motion !== false;
+    island.classList.toggle('near', nearNow && !ui.hovered);
+  });
+
   // The main process tells us when the cursor enters or leaves the island (see main.js).
   ui.pointer = false;
   function onPointer(inside) {
     ui.pointer = inside;
+    island.classList.toggle('peek', inside && !ui.hovered && S.config.motion !== false);
     if (inside) {
+      island.classList.remove('near');
       clearTimeout(leaveTimer);
       clearTimeout(hoverTimer);
       hoverTimer = setTimeout(openPanel, 160);
@@ -986,12 +1172,14 @@
       chime('done');
       flash('done');
       shine();
+      halo();
       doneCard = {
         id: Date.now(), sessionId: ev.sessionId, project: ev.project, summary: ev.summary, desktop: !!ev.desktop,
         replyUntil: ev.replyUntil || 0, until: Math.max(Date.now() + 7000, ev.replyUntil || 0),
       };
       bump();
     }
+    if (ev.type === 'greet') greet(ev);
     if (ev.type === 'update') card = { key: 'update', status: 'done', sticky: true, html: updateCardHtml(ev) };
     if (ev.type === 'updated') {
       card = {
@@ -1022,8 +1210,20 @@
     render();
   });
   ada.on('music:state', (m) => { S.music = m; for (const t of tabs) if (t.onMusic) t.onMusic(m); render(); });
+  // the wallpaper's colour under the island: a little of it goes into the island's body, and a light
+  // wallpaper gets a deeper shadow so the island still stands out
+  function applyWall(w) {
+    const root = document.documentElement;
+    if (!w) { root.style.removeProperty('--wall'); document.body.classList.remove('wall-tint', 'wall-light'); return; }
+    root.style.setProperty('--wall', `rgb(${w.r} ${w.g} ${w.b})`);
+    document.body.classList.add('wall-tint');
+    document.body.classList.toggle('wall-light', w.lum > 0.45);
+  }
+  Ada.applyWall = applyWall;
+
   ada.on('mod:state', ({ mod, data }) => {
     S.mods[mod] = data;
+    if (mod === 'wall') applyWall(data);
     if (mod === 'update' && card && card.key === 'update' && data) card.html = updateCardHtml(data);
     for (const t of tabs) if (t.onMod) t.onMod(mod, data);
     render();
@@ -1057,6 +1257,7 @@
       if (state) S.claude = state;
       if (music) S.music = music;
       if (mods) Object.assign(S.mods, mods);
+      applyWall(S.mods.wall);
       for (const t of tabs) if (t.init) t.init();
       started = true;
       render();

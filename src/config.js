@@ -27,6 +27,16 @@ const DEFAULTS = {
   quickReply: 15,            // seconds a finished Claude Code session waits for a reply from the island (0 = off)
   autoUpdate: true,          // a downloaded update installs by itself when Ada closes
   pluginsEnabled: {},        // { <plugin id>: true } — plugins run only after being turned on
+  motion: true,             // liquid opening, leaning towards the cursor, rolling numbers
+  edgeGlow: true,           // a light running round the edge while Claude works
+  wallTint: true,           // take on a little of the wallpaper's colour
+  fenerMoods: true,         // the lighthouse yawns, focuses, turns its light to you
+  seasons: true,            // snow, flowers, leaves, a party hat…
+  greeting: true,           // a hello the first time you sit down each day
+  userName: '',             // the name in that hello ('' = from the Windows user name)
+  birthday: '',             // 'DD.MM'
+  soundPack: 'klasik',      // klasik | yumusak | mekanik | bit
+  greetedDay: '',
   weatherPlace: null,        // { name, admin, country, lat, lon } chosen in Settings
   weatherRest: true,         // temperature next to the lighthouse
   calendarUrl: '',           // secret iCal address of a calendar (Google Calendar → Settings → Integrate)
